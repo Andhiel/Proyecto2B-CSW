@@ -12,9 +12,11 @@ import { BrailleSymbol, BrailleDots, IBrailleMapper } from '@/types/braille';
  */
 export class SpanishBrailleMapper implements IBrailleMapper {
   private characterMap: Map<string, BrailleSymbol>;
+  private dotsMap: Map<string, string>; // Mapeo inverso: puntos → carácter
   
   constructor() {
     this.characterMap = new Map();
+    this.dotsMap = new Map();
     this.initializeMapping();
   }
   
@@ -23,34 +25,35 @@ export class SpanishBrailleMapper implements IBrailleMapper {
    * Incluye: alfabeto, números, vocales acentuadas y signos de puntuación
    */
   private initializeMapping(): void {
-    // Alfabeto español (minúsculas)
-    this.addMapping('a', [true, false, false, false, false, false], 'Letra A');
-    this.addMapping('b', [true, true, false, false, false, false], 'Letra B');
-    this.addMapping('c', [true, false, false, true, false, false], 'Letra C');
-    this.addMapping('d', [true, false, false, true, true, false], 'Letra D');
-    this.addMapping('e', [true, false, false, false, true, false], 'Letra E');
-    this.addMapping('f', [true, true, false, true, false, false], 'Letra F');
-    this.addMapping('g', [true, true, false, true, true, false], 'Letra G');
-    this.addMapping('h', [true, true, false, false, true, false], 'Letra H');
-    this.addMapping('i', [false, true, false, true, false, false], 'Letra I');
-    this.addMapping('j', [false, true, false, true, true, false], 'Letra J');
-    this.addMapping('k', [true, false, true, false, false, false], 'Letra K');
-    this.addMapping('l', [true, true, true, false, false, false], 'Letra L');
-    this.addMapping('m', [true, false, true, true, false, false], 'Letra M');
-    this.addMapping('n', [true, false, true, true, true, false], 'Letra N');
-    this.addMapping('ñ', [true, false, true, true, true, true], 'Letra Ñ');
-    this.addMapping('o', [true, false, true, false, true, false], 'Letra O');
-    this.addMapping('p', [true, true, true, true, false, false], 'Letra P');
-    this.addMapping('q', [true, true, true, true, true, false], 'Letra Q');
-    this.addMapping('r', [true, true, true, false, true, false], 'Letra R');
-    this.addMapping('s', [false, true, true, true, false, false], 'Letra S');
-    this.addMapping('t', [false, true, true, true, true, false], 'Letra T');
-    this.addMapping('u', [true, false, true, false, false, true], 'Letra U');
-    this.addMapping('v', [true, true, true, false, false, true], 'Letra V');
-    this.addMapping('w', [false, true, false, true, true, true], 'Letra W');
-    this.addMapping('x', [true, false, true, true, false, true], 'Letra X');
-    this.addMapping('y', [true, false, true, true, true, true], 'Letra Y');
-    this.addMapping('z', [true, false, true, false, true, true], 'Letra Z');
+    // Alfabeto español (minúsculas) - Según estándar internacional Braille Unicode
+    // Puntos: [1, 2, 3, 4, 5, 6] donde 1-3 son columna izquierda, 4-6 columna derecha
+    this.addMapping('a', [true, false, false, false, false, false], 'Letra A');     // ⠁ dots-1
+    this.addMapping('b', [true, true, false, false, false, false], 'Letra B');      // ⠃ dots-12
+    this.addMapping('c', [true, false, false, true, false, false], 'Letra C');     // ⠉ dots-14
+    this.addMapping('d', [true, false, false, true, true, false], 'Letra D');      // ⠙ dots-145
+    this.addMapping('e', [true, false, false, false, true, false], 'Letra E');     // ⠑ dots-15
+    this.addMapping('f', [true, true, false, true, false, false], 'Letra F');      // ⠋ dots-124
+    this.addMapping('g', [true, true, false, true, true, false], 'Letra G');       // ⠛ dots-1245
+    this.addMapping('h', [true, true, false, false, true, false], 'Letra H');      // ⠓ dots-125
+    this.addMapping('i', [false, true, false, true, false, false], 'Letra I');     // ⠊ dots-24
+    this.addMapping('j', [false, true, false, true, true, false], 'Letra J');      // ⠚ dots-245
+    this.addMapping('k', [true, false, true, false, false, false], 'Letra K');     // ⠅ dots-13
+    this.addMapping('l', [true, true, true, false, false, false], 'Letra L');      // ⠇ dots-123
+    this.addMapping('m', [true, false, true, true, false, false], 'Letra M');      // ⠍ dots-134
+    this.addMapping('n', [true, false, true, true, true, false], 'Letra N');       // ⠝ dots-1345
+    this.addMapping('ñ', [true, false, true, true, true, true], 'Letra Ñ');       // ⠵ dots-13456
+    this.addMapping('o', [true, false, true, false, true, false], 'Letra O');      // ⠕ dots-135
+    this.addMapping('p', [true, true, true, true, false, false], 'Letra P');       // ⠏ dots-1234
+    this.addMapping('q', [true, true, true, true, true, false], 'Letra Q');       // ⠟ dots-12345
+    this.addMapping('r', [true, true, true, false, true, false], 'Letra R');       // ⠗ dots-1235
+    this.addMapping('s', [false, true, true, true, false, false], 'Letra S');     // ⠎ dots-234
+    this.addMapping('t', [false, true, true, true, true, false], 'Letra T');       // ⠞ dots-2345
+    this.addMapping('u', [true, false, true, false, false, true], 'Letra U');     // ⠥ dots-136
+    this.addMapping('v', [true, true, true, false, false, true], 'Letra V');       // ⠧ dots-1236
+    this.addMapping('w', [false, true, false, true, true, true], 'Letra W');      // ⠷ dots-2456
+    this.addMapping('x', [true, false, true, true, false, true], 'Letra X');       // ⠭ dots-1346
+    this.addMapping('y', [true, false, true, true, true, true], 'Letra Y');       // ⠽ dots-13456
+    this.addMapping('z', [true, false, true, false, true, true], 'Letra Z');      // ⠵ dots-1356
     
     // Alfabeto español (mayúsculas) - mismo código que minúsculas
     // El indicador de mayúscula se inserta separadamente en el transcriber
@@ -95,33 +98,34 @@ export class SpanishBrailleMapper implements IBrailleMapper {
     this.addMapping('Ó', [true, false, false, true, true, true], 'Letra Ó (mayúscula)');
     this.addMapping('Ú', [true, false, false, false, true, true], 'Letra Ú (mayúscula)');
     
-    // Números (requieren indicador numérico)
-    this.addMapping('0', [false, true, true, true, true, true], 'Número 0');
-    this.addMapping('1', [true, false, false, false, false, false], 'Número 1');
-    this.addMapping('2', [true, true, false, false, false, false], 'Número 2');
-    this.addMapping('3', [true, false, false, true, false, false], 'Número 3');
-    this.addMapping('4', [true, false, false, true, true, false], 'Número 4');
-    this.addMapping('5', [true, false, false, false, true, false], 'Número 5');
-    this.addMapping('6', [true, true, false, true, false, false], 'Número 6');
-    this.addMapping('7', [true, true, false, true, true, false], 'Número 7');
-    this.addMapping('8', [true, true, false, false, true, false], 'Número 8');
-    this.addMapping('9', [false, true, false, true, false, false], 'Número 9');
+    // Números (requieren indicador numérico ⠼) - Según estándar internacional
+    // Los números usan los mismos patrones que a-j pero con indicador numérico
+    this.addMapping('0', [false, true, true, true, true, true], 'Número 0');     // ⠴ dots-23456 (j con indicador)
+    this.addMapping('1', [true, false, false, false, false, false], 'Número 1');     // ⠁ dots-1 (a con indicador)
+    this.addMapping('2', [true, true, false, false, false, false], 'Número 2');     // ⠃ dots-12 (b con indicador)
+    this.addMapping('3', [true, false, false, true, false, false], 'Número 3');     // ⠉ dots-14 (c con indicador)
+    this.addMapping('4', [true, false, false, true, true, false], 'Número 4');     // ⠙ dots-145 (d con indicador)
+    this.addMapping('5', [true, false, false, false, true, false], 'Número 5');     // ⠑ dots-15 (e con indicador)
+    this.addMapping('6', [true, true, false, true, false, false], 'Número 6');     // ⠋ dots-124 (f con indicador)
+    this.addMapping('7', [true, true, false, true, true, false], 'Número 7');     // ⠛ dots-1245 (g con indicador)
+    this.addMapping('8', [true, true, false, false, true, false], 'Número 8');     // ⠓ dots-125 (h con indicador)
+    this.addMapping('9', [false, true, false, true, false, false], 'Número 9');     // ⠊ dots-24 (i con indicador)
     
-    // Signos de puntuación básicos
-    this.addMapping(' ', [false, false, false, false, false, false], 'Espacio');
-    this.addMapping('.', [false, true, true, false, false, true], 'Punto');
-    this.addMapping(',', [false, true, false, false, false, true], 'Coma');
-    this.addMapping(';', [false, true, false, false, true, true], 'Punto y coma');
-    this.addMapping(':', [false, true, false, true, false, true], 'Dos puntos');
-    this.addMapping('!', [false, true, true, true, false, true], 'Signo de exclamación');
-    this.addMapping('¡', [false, true, true, true, true, false], 'Signo de exclamación invertido');
-    this.addMapping('?', [false, true, true, true, false, false], 'Signo de interrogación');
-    this.addMapping('¿', [false, true, true, true, true, true], 'Signo de interrogación invertido');
-    this.addMapping('"', [false, false, true, false, false, true], 'Comillas');
-    this.addMapping("'", [false, false, true, false, true, false], 'Apóstrofe');
-    this.addMapping('-', [false, false, true, false, true, true], 'Guion');
-    this.addMapping('(', [false, true, true, false, true, false], 'Paréntesis abierto');
-    this.addMapping(')', [false, true, true, false, true, true], 'Paréntesis cerrado');
+    // Signos de puntuación básicos - Según estándar internacional Braille
+    this.addMapping(' ', [false, false, false, false, false, false], 'Espacio');        // ⠀ blank
+    this.addMapping('.', [false, true, true, false, false, true], 'Punto');           // ⠲ dots-256
+    this.addMapping(',', [false, true, false, false, false, true], 'Coma');           // ⠂ dots-2
+    this.addMapping(';', [false, true, false, false, true, true], 'Punto y coma');    // ⠰ dots-25
+    this.addMapping(':', [false, true, false, true, false, true], 'Dos puntos');       // ⠒ dots-25
+    this.addMapping('!', [false, true, true, true, false, true], 'Signo de exclamación'); // ⠖ dots-2356
+    this.addMapping('¡', [false, true, true, true, true, false], 'Signo de exclamación invertido'); // ⠔ dots-2345
+    this.addMapping('?', [false, true, true, true, false, false], 'Signo de interrogación'); // ⠢ dots-236
+    this.addMapping('¿', [false, true, true, true, true, true], 'Signo de interrogación invertido'); // ⠮ dots-2346
+    this.addMapping('"', [false, false, true, false, false, true], 'Comillas');       // ⠐ dots-5
+    this.addMapping("'", [false, false, true, false, true, false], 'Apóstrofe');     // ⠄ dots-3
+    this.addMapping('-', [false, false, true, false, true, true], 'Guion');          // ⠤ dots-36
+    this.addMapping('(', [false, true, true, false, true, false], 'Paréntesis abierto'); // ⠦ dots-236
+    this.addMapping(')', [false, true, true, false, true, true], 'Paréntesis cerrado'); // ⠴ dots-2356
     
     // Signos especiales del español
     this.addMapping('ü', [true, false, true, false, true, true], 'Letra ü');
@@ -140,6 +144,10 @@ export class SpanishBrailleMapper implements IBrailleMapper {
       character,
       description
     });
+    
+    // Agregar mapeo inverso para conversión Braille → Español
+    const dotsKey = dots.map(d => d ? '1' : '0').join('');
+    this.dotsMap.set(dotsKey, character);
   }
   
   /**
@@ -221,5 +229,25 @@ export class SpanishBrailleMapper implements IBrailleMapper {
    */
   public isPunctuation(character: string): boolean {
     return /^[.,;:!?¿¡"'()\-\s]$/.test(character);
+  }
+  
+  /**
+   * Obtiene el carácter español desde los puntos Braille
+   * @param dots Array de 6 booleanos representando los puntos
+   * @returns Carácter español correspondiente o null si no existe
+   */
+  public getCharacterFromDots(dots: BrailleDots): string | null {
+    const dotsKey = dots.map(d => d ? '1' : '0').join('');
+    return this.dotsMap.get(dotsKey) || null;
+  }
+  
+  /**
+   * Verifica si los puntos tienen mapeo a un carácter
+   * @param dots Array de 6 booleanos representando los puntos
+   * @returns True si existe mapeo
+   */
+  public hasDotsMapping(dots: BrailleDots): boolean {
+    const dotsKey = dots.map(d => d ? '1' : '0').join('');
+    return this.dotsMap.has(dotsKey);
   }
 }

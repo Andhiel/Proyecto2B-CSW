@@ -42,26 +42,26 @@ export const BrailleSymbol: React.FC<BrailleSymbolProps> = ({
   interactive = false,
   onClick
 }) => {
-  // Tamaños predefinidos para el cuadratín (2x3)
+  // Tamaños predefinidos para el cuadratín (3 filas × 2 columnas)
   const sizeClasses = {
-    sm: 'w-6 h-8',
-    md: 'w-8 h-10',
-    lg: 'w-10 h-12'
+    sm: 'w-8 h-12',
+    md: 'w-12 h-16',
+    lg: 'w-16 h-20'
   };
   
   // Tamaños de los puntos
   const dotSizes = {
-    sm: 'w-2 h-2',
-    md: 'w-3 h-3',
-    lg: 'w-4 h-4'
+    sm: 'w-3 h-3',
+    md: 'w-4 h-4',
+    lg: 'w-5 h-5'
   };
   
-  // Renderizado en modo de puntos visuales (grid 2x3)
+  // Renderizado en modo de puntos visuales (grid 3 filas × 2 columnas)
   if (displayMode === 'dots') {
     return (
       <div
         className={cn(
-          'relative grid grid-cols-2 grid-rows-3 gap-1 p-1 border-2 border-gray-300 rounded',
+          'relative grid grid-cols-2 grid-rows-3 gap-2 p-2 border-2 border-gray-300 rounded bg-white',
           sizeClasses[size],
           interactive && 'cursor-pointer hover:border-blue-500 hover:bg-blue-50 transition-colors',
           className

@@ -82,12 +82,13 @@ export const TextInput: React.FC<TextInputProps> = ({
    * Maneja eventos de teclado en el textarea
    */
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    // Prevenir que Enter ejecute acciones no deseadas
-    // Permitir Shift+Enter para nueva línea si es necesario
+    // Enter sin Shift transcribe el texto
+    // Shift+Enter permite nueva línea
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
-      // No hacer nada con Enter, solo prevenir el comportamiento por defecto
-      // El usuario debe hacer clic en el botón Transcribir
+      if (value && !isProcessing && errors.length === 0 && unsupportedCharacters.length === 0) {
+        onTranscribe();
+      }
     }
   };
   
