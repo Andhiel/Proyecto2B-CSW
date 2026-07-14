@@ -16,7 +16,7 @@ const NUMPAD_TO_DOT_INDEX: Record<string, number> = {
 
 const DOT_TO_NUMPAD_KEY = ['7', '4', '1', '8', '5', '2'];
 
-interface BrailleVirtualKeyboardProps {
+export interface BrailleVirtualKeyboardProps {
   onSymbolAdd: (dots: BrailleDots, unicodeChar: string) => void;
   onBackspace: () => void;
   onClear: () => void;

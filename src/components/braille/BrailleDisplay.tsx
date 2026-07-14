@@ -14,7 +14,7 @@ import { Download, Eye, FileSearch } from 'lucide-react';
 import { cn } from '@/utils/cn';
 import { UnicodeBrailleConverter } from '@/lib/unicode-braille-converter';
 
-interface BraillePrintLayoutOptions {
+export interface BraillePrintLayoutOptions {
   cellWidthMm: number;
   cellHeightMm: number;
   cellsPerLine: number;
@@ -22,13 +22,13 @@ interface BraillePrintLayoutOptions {
   rowGapMm: number;
 }
 
-interface BrailleExportOptions {
+export interface BrailleExportOptions {
   mirrorMode?: boolean;
   layout?: BraillePrintLayoutOptions;
   preview?: boolean;
 }
 
-interface BrailleDisplayProps {
+export interface BrailleDisplayProps {
   /** Resultado de la transcripcion a mostrar */
   transcriptionResult: BrailleOutput;
 

@@ -7,10 +7,23 @@
 import { BrailleDots, BrailleOutput, TranscriptionStatistics } from '@/types/braille';
 import { SpanishBrailleMapper } from './braille-mapper';
 
-interface BrailleToSpanishOutput {
+/**
+ * Resultado completo de una transcripcion desde Braille hacia texto espanol.
+ *
+ * Incluye el texto reconstruido, los simbolos procesados y las metricas de
+ * ejecucion necesarias para mostrar estadisticas en la interfaz.
+ */
+export interface BrailleToSpanishOutput {
+  /** Secuencia original de celdas Braille expresada en formato binario. */
   originalBraille: string;
+
+  /** Texto espanol obtenido despues de interpretar puntos, numeros y mayusculas. */
   spanishText: string;
+
+  /** Simbolos procesados junto con el caracter textual que representan. */
   symbols: Array<{ dots: BrailleDots; character: string }>;
+
+  /** Estadisticas de la transcripcion inversa. */
   statistics: TranscriptionStatistics;
 }
 

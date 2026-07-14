@@ -11,7 +11,7 @@ import { Button } from '@/components/ui/Button';
 import { AlertCircle, CheckCircle, X, Upload, FileText } from 'lucide-react';
 import { cn } from '@/utils/cn';
 
-interface TextInputProps {
+export interface TextInputProps {
   /** Texto actual del input */
   value: string;
   

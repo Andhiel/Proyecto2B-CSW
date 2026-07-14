@@ -10,7 +10,7 @@ import React from 'react';
 import { cn } from '@/utils/cn';
 import { BrailleDots } from '@/types/braille';
 
-interface BrailleSymbolProps {
+export interface BrailleSymbolProps {
   /** Array de 6 booleanos representando los puntos [1,2,3,4,5,6] */
   dots: BrailleDots;
   

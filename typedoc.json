@@ -1,0 +1,30 @@
+{
+  "$schema": "https://typedoc.org/schema.json",
+  "name": "Transcriptor Español a Braille",
+  "entryPoints": [
+    "src/types/braille.ts",
+    "src/lib/braille-mapper.ts",
+    "src/lib/braille-transcriber.ts",
+    "src/lib/braille-to-spanish-transcriber.ts",
+    "src/lib/unicode-braille-converter.ts",
+    "src/components/braille/BrailleSymbol.tsx",
+    "src/components/braille/BrailleDisplay.tsx",
+    "src/components/braille/BrailleVirtualKeyboard.tsx",
+    "src/components/braille/TextInput.tsx"
+  ],
+  "entryPointStrategy": "resolve",
+  "out": "docs/typedoc",
+  "tsconfig": "tsconfig.json",
+  "readme": "none",
+  "includeVersion": true,
+  "excludePrivate": true,
+  "excludeProtected": true,
+  "excludeInternal": true,
+  "categorizeByGroup": true,
+  "cleanOutputDir": true,
+  "searchInComments": true,
+  "sourceLinkTemplate": "https://github.com/Andhiel/Proyecto2B-CSW/blob/{gitRevision}/{path}#L{line}",
+  "navigationLinks": {
+    "Repositorio": "https://github.com/Andhiel/Proyecto2B-CSW"
+  }
+}
