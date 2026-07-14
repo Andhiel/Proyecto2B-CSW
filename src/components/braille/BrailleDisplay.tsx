@@ -8,25 +8,82 @@
 
 import React, { useState } from 'react';
 import { BrailleSymbol } from './BrailleSymbol';
-import { BrailleOutput } from '@/types/braille';
+import { BrailleDots, BrailleOutput } from '@/types/braille';
 import { Button } from '@/components/ui/Button';
-import { Download, Eye, Settings, Grid, List, Printer } from 'lucide-react';
+import { Download, Eye, FileSearch } from 'lucide-react';
 import { cn } from '@/utils/cn';
+import { UnicodeBrailleConverter } from '@/lib/unicode-braille-converter';
 
-interface BrailleDisplayProps {
-  /** Resultado de la transcripción a mostrar */
-  transcriptionResult: BrailleOutput;
-  
-  /** Clases CSS adicionales */
-  className?: string;
-  
-  /** Callback para exportar resultados */
-  onExport?: (format: 'text' | 'json' | 'pdf') => void;
+interface BraillePrintLayoutOptions {
+  cellWidthMm: number;
+  cellHeightMm: number;
+  cellsPerLine: number;
+  cellGapMm: number;
+  rowGapMm: number;
 }
 
+interface BrailleExportOptions {
+  mirrorMode?: boolean;
+  layout?: BraillePrintLayoutOptions;
+  preview?: boolean;
+}
+
+interface BrailleDisplayProps {
+  /** Resultado de la transcripcion a mostrar */
+  transcriptionResult: BrailleOutput;
+
+  /** Clases CSS adicionales */
+  className?: string;
+
+  /** Callback para exportar resultados */
+  onExport?: (format: 'text' | 'json' | 'pdf', options?: BrailleExportOptions) => void;
+}
+
+const LETTER_CONTENT_WIDTH_MM = 195.9;
+const MIN_CELL_WIDTH_MM = 3;
+const MAX_CELL_WIDTH_MM = 20;
+const MIN_CELL_HEIGHT_MM = 5;
+const MAX_CELL_HEIGHT_MM = 25;
+const MIN_CELL_GAP_MM = 0;
+const MAX_CELL_GAP_MM = 5;
+const MIN_ROW_GAP_MM = 0;
+const MAX_ROW_GAP_MM = 12;
+const DEFAULT_PRINT_LAYOUT: BraillePrintLayoutOptions = {
+  cellWidthMm: 5.5,
+  cellHeightMm: 9,
+  cellsPerLine: 32,
+  cellGapMm: 0.6,
+  rowGapMm: 1
+};
+
+const clamp = (value: number, min: number, max: number) => (
+  Math.min(Math.max(value, min), max)
+);
+
+const normalizePrintLayout = (layout: BraillePrintLayoutOptions): BraillePrintLayoutOptions => {
+  const cellGapMm = clamp(Number.isFinite(layout.cellGapMm) ? layout.cellGapMm : DEFAULT_PRINT_LAYOUT.cellGapMm, MIN_CELL_GAP_MM, MAX_CELL_GAP_MM);
+  const maxCellsPerLine = Math.max(1, Math.floor((LETTER_CONTENT_WIDTH_MM + cellGapMm) / (MIN_CELL_WIDTH_MM + cellGapMm)));
+  const cellsPerLine = clamp(Math.round(Number.isFinite(layout.cellsPerLine) ? layout.cellsPerLine : DEFAULT_PRINT_LAYOUT.cellsPerLine), 1, maxCellsPerLine);
+  const maxCellWidthForLine = (LETTER_CONTENT_WIDTH_MM - (cellGapMm * (cellsPerLine - 1))) / cellsPerLine;
+  const cellWidthMm = clamp(
+    Number.isFinite(layout.cellWidthMm) ? layout.cellWidthMm : DEFAULT_PRINT_LAYOUT.cellWidthMm,
+    MIN_CELL_WIDTH_MM,
+    Math.max(MIN_CELL_WIDTH_MM, Math.min(MAX_CELL_WIDTH_MM, maxCellWidthForLine))
+  );
+  const cellHeightMm = clamp(Number.isFinite(layout.cellHeightMm) ? layout.cellHeightMm : DEFAULT_PRINT_LAYOUT.cellHeightMm, MIN_CELL_HEIGHT_MM, MAX_CELL_HEIGHT_MM);
+  const rowGapMm = clamp(Number.isFinite(layout.rowGapMm) ? layout.rowGapMm : DEFAULT_PRINT_LAYOUT.rowGapMm, MIN_ROW_GAP_MM, MAX_ROW_GAP_MM);
+
+  return {
+    cellWidthMm: Number(cellWidthMm.toFixed(2)),
+    cellHeightMm: Number(cellHeightMm.toFixed(2)),
+    cellsPerLine,
+    cellGapMm: Number(cellGapMm.toFixed(2)),
+    rowGapMm: Number(rowGapMm.toFixed(2))
+  };
+};
+
 /**
- * Componente que muestra el resultado de la transcripción Braille
- * Permite diferentes modos de visualización y exportación
+ * Componente que muestra el resultado de la transcripcion Braille.
  */
 export const BrailleDisplay: React.FC<BrailleDisplayProps> = ({
   transcriptionResult,
@@ -34,24 +91,61 @@ export const BrailleDisplay: React.FC<BrailleDisplayProps> = ({
   onExport
 }) => {
   const [displayMode, setDisplayMode] = useState<'dots' | 'binary' | 'unicode'>('dots');
-  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
-  const [showSettings, setShowSettings] = useState(false);
+  const [showExportOptions, setShowExportOptions] = useState(false);
   const [mirrorMode, setMirrorMode] = useState(false);
-  
-  const { symbols, tokens, brailleText, statistics } = transcriptionResult;
-  
-  /**
-   * Renderiza los símbolos en modo grid
-   */
+  const [printLayout, setPrintLayout] = useState<BraillePrintLayoutOptions>(DEFAULT_PRINT_LAYOUT);
+
+  const { symbols, brailleText, statistics } = transcriptionResult;
+
+  const mirrorDots = (dots: BrailleDots): BrailleDots => [
+    dots[3],
+    dots[4],
+    dots[5],
+    dots[0],
+    dots[1],
+    dots[2]
+  ];
+
+  const getVisibleDots = (dots: BrailleDots): BrailleDots => (
+    mirrorMode ? mirrorDots(dots) : dots
+  );
+
+  const normalizedPrintLayout = normalizePrintLayout(printLayout);
+  const printRowWidthMm = (normalizedPrintLayout.cellsPerLine * normalizedPrintLayout.cellWidthMm)
+    + ((normalizedPrintLayout.cellsPerLine - 1) * normalizedPrintLayout.cellGapMm);
+  const exportOptions: BrailleExportOptions = { mirrorMode, layout: normalizedPrintLayout };
+
+  const updatePrintLayout = (field: keyof BraillePrintLayoutOptions, value: number) => {
+    if (!Number.isFinite(value)) return;
+    setPrintLayout((current) => normalizePrintLayout({
+      ...current,
+      [field]: value
+    }));
+  };
+
+  const getTextViewContent = () => {
+    if (displayMode === 'unicode') {
+      return symbols
+        .map((symbol) => UnicodeBrailleConverter.dotsToUnicode(getVisibleDots(symbol.dots)))
+        .join(' ');
+    }
+
+    return brailleText;
+  };
+
   const renderGridView = () => (
-    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4 p-4">
+    <div
+      className="grid grid-cols-2 gap-4 p-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6"
+      style={{ direction: mirrorMode ? 'rtl' : 'ltr' }}
+    >
       {symbols.map((symbol, index) => (
         <div
           key={index}
           className="flex flex-col items-center space-y-2"
+          style={{ direction: 'ltr' }}
         >
           <BrailleSymbol
-            dots={symbol.dots}
+            dots={getVisibleDots(symbol.dots)}
             size="md"
             displayMode={displayMode}
             interactive
@@ -59,192 +153,32 @@ export const BrailleDisplay: React.FC<BrailleDisplayProps> = ({
               // Future: show symbol details
             }}
           />
-          <span className="text-xs text-gray-600 font-mono">
+          <span className="font-mono text-xs text-gray-600">
             {symbol.character}
           </span>
         </div>
       ))}
     </div>
   );
-  
-  /**
-   * Renderiza los símbolos en modo lista horizontal
-   */
-  const renderListView = () => (
-    <div className="flex flex-wrap gap-3 p-4">
-      {symbols.map((symbol, index) => (
-        <div
-          key={index}
-          className="flex items-center space-x-2"
-        >
-          <BrailleSymbol
-            dots={symbol.dots}
-            size="sm"
-            displayMode={displayMode}
-          />
-          <span className="text-sm text-gray-600 font-mono">
-            {symbol.character}
-          </span>
-        </div>
-      ))}
-    </div>
-  );
-  
-  /**
-   * Renderiza la vista de texto plano
-   */
+
   const renderTextView = () => (
-    <div className="p-4 bg-gray-50 rounded-lg">
-      <pre className="font-mono text-sm whitespace-pre-wrap break-all">
-        {brailleText}
+    <div className="rounded-lg bg-gray-50 p-4">
+      <pre className="whitespace-pre-wrap break-all font-mono text-sm">
+        {getTextViewContent()}
       </pre>
     </div>
   );
-  
-  /**
-   * Maneja la impresión en modo espejo con diseño profesional
-   */
-  const handlePrint = () => {
-    // Crear contenido para imprimir con diseño profesional
-    const symbolsHtml = symbols.map((symbol, index) => {
-      // Invertir puntos horizontalmente si está en modo espejo
-      const mirroredDots = mirrorMode 
-        ? [symbol.dots[3], symbol.dots[4], symbol.dots[5], symbol.dots[0], symbol.dots[1], symbol.dots[2]]
-        : symbol.dots;
-      
-      // Grid 3 filas × 2 columnas (vertical) - estándar Braille
-      const dotsGrid = [
-        mirroredDots[0], mirroredDots[3], // Fila 1: puntos 1, 4
-        mirroredDots[1], mirroredDots[4], // Fila 2: puntos 2, 5
-        mirroredDots[2], mirroredDots[5]  // Fila 3: puntos 3, 6
-      ];
-      
-      // Crear cuadratín con diseño profesional - puntos dentro del cuadratín
-      const dotsHtml = dotsGrid.map((dot, i) => {
-        const dotStyle = dot 
-          ? 'background: #000; width: 8px; height: 8px; border-radius: 50%;'
-          : 'background: #e0e0e0; width: 8px; height: 8px; border-radius: 50%;';
-        return `<div style="${dotStyle} display: inline-block;"></div>`;
-      }).join('');
-      
-      return `
-        <div style="
-          display: inline-block; 
-          border: 2px solid #000; 
-          padding: 6px; 
-          margin: 6px; 
-          width: 40px; 
-          height: 60px;
-          background: white;
-          box-sizing: border-box;
-          vertical-align: top;
-        ">
-          <div style="display: grid; grid-template-columns: repeat(2, 1fr); grid-template-rows: repeat(3, 1fr); gap: 4px; height: 100%;">
-            ${dotsGrid.map((dot, i) => `
-              <div style="display: flex; align-items: center; justify-content: center;">
-                <div style="${dot ? 'background: #000;' : 'background: #e0e0e0;'} width: 12px; height: 12px; border-radius: 50%;"></div>
-              </div>
-            `).join('')}
-          </div>
-        </div>
-      `;
-    }).join('');
-    
-    const printContent = `
-      <div style="font-family: Arial, sans-serif; padding: 30px; max-width: 100%;">
-        <!-- Encabezado -->
-        <div style="border-bottom: 3px solid #000; padding-bottom: 20px; margin-bottom: 30px;">
-          <h1 style="margin: 0; color: #000; font-size: 24px; font-weight: bold;">
-            Transcripción Braille
-          </h1>
-          <p style="margin: 10px 0 0 0; color: #666; font-size: 14px;">
-            ${mirrorMode ? '⚠️ MODO ESPEJO - Para uso con punzones' : 'Vista normal'}
-          </p>
-        </div>
-        
-        <!-- Información del documento -->
-        <div style="background: #f5f5f5; padding: 15px; margin-bottom: 30px; border-left: 4px solid #000;">
-          <p style="margin: 5px 0; font-size: 14px; color: #333;">
-            <strong>Texto original:</strong> ${transcriptionResult.originalText}
-          </p>
-          <p style="margin: 5px 0; font-size: 14px; color: #333;">
-            <strong>Total de símbolos:</strong> ${symbols.length}
-          </p>
-          <p style="margin: 5px 0; font-size: 14px; color: #333;">
-            <strong>Fecha:</strong> ${new Date().toLocaleDateString('es-ES')}
-          </p>
-        </div>
-        
-        <!-- Cuadratines Braille -->
-        <div style="display: flex; flex-wrap: wrap; gap: 8px; justify-content: flex-start; line-height: 1;">
-          ${symbolsHtml}
-        </div>
-        
-        <!-- Instrucciones -->
-        <div style="margin-top: 40px; padding: 20px; background: #e8f4f8; border-radius: 8px; border: 1px solid #b8d4e3;">
-          <h3 style="margin: 0 0 10px 0; color: #0056b3; font-size: 16px;">Instrucciones de uso:</h3>
-          <ul style="margin: 0; padding-left: 20px; color: #333; font-size: 13px; line-height: 1.6;">
-            <li>Cada cuadratín representa un carácter en Braille</li>
-            <li>Los puntos negros deben punzonarse con el punzón</li>
-            <li>Los puntos grises son guías de referencia</li>
-            ${mirrorMode ? '<li>Esta hoja está en modo espejo para punzonar por el reverso</li>' : '<li>Para punzonar, activa el modo espejo en la configuración</li>'}
-          </ul>
-        </div>
-        
-        <!-- Pie de página -->
-        <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #ccc; text-align: center; color: #999; font-size: 12px;">
-          Generado con Transcriptor Braille - Estándar Unicode Braille
-        </div>
-      </div>
-    `;
-    
-    const printWindow = window.open('', '_blank');
-    if (printWindow) {
-      printWindow.document.write(`
-        <!DOCTYPE html>
-        <html>
-        <head>
-          <title>Impresión Braille</title>
-          <style>
-            @media print {
-              @page {
-                margin: 1cm;
-                size: A4;
-              }
-              body {
-                margin: 0;
-                padding: 0;
-              }
-              .no-print {
-                display: none;
-              }
-            }
-            body {
-              margin: 0;
-              padding: 0;
-              font-family: Arial, sans-serif;
-            }
-          </style>
-        </head>
-        <body>
-          ${printContent}
-        </body>
-        </html>
-      `);
-      printWindow.document.close();
-      printWindow.print();
-    }
+
+  const handlePdfPreview = () => {
+    onExport?.('pdf', { ...exportOptions, preview: true });
   };
-  
-  /**
-   * Renderiza las estadísticas
-   */
+
   const renderStatistics = () => (
-    <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-      <h3 className="text-lg font-semibold text-blue-900 mb-3">
-        Estadísticas de Transcripción
+    <div className="rounded-lg border border-blue-200 bg-blue-50 p-4">
+      <h3 className="mb-3 text-lg font-semibold text-blue-900">
+        Estadisticas de Transcripcion
       </h3>
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+      <div className="grid grid-cols-2 gap-4 text-sm md:grid-cols-4">
         <div>
           <div className="text-gray-600">Caracteres totales</div>
           <div className="font-semibold text-blue-900">
@@ -252,7 +186,7 @@ export const BrailleDisplay: React.FC<BrailleDisplayProps> = ({
           </div>
         </div>
         <div>
-          <div className="text-gray-600">Símbolos Braille</div>
+          <div className="text-gray-600">Simbolos Braille</div>
           <div className="font-semibold text-blue-900">
             {statistics.totalSymbols}
           </div>
@@ -272,28 +206,27 @@ export const BrailleDisplay: React.FC<BrailleDisplayProps> = ({
       </div>
     </div>
   );
-  
+
   return (
-    <div className={cn('bg-white rounded-lg shadow-lg border border-gray-200', className)}>
-      {/* Header con controles */}
+    <div className={cn('rounded-lg border border-gray-200 bg-white shadow-lg', className)}>
       <div className="border-b border-gray-200 p-4">
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center space-y-4 sm:space-y-0">
+        <div className="flex flex-col items-start justify-between space-y-4 sm:flex-row sm:items-center sm:space-y-0">
           <div>
             <h2 className="text-xl font-semibold text-gray-900">
               Resultado Braille
             </h2>
             <p className="text-sm text-gray-600">
-              {symbols.length} símbolos generados
+              {symbols.length} simbolos generados
             </p>
           </div>
-          
+
           <div className="flex flex-wrap gap-2">
-            {/* Controles de visualización */}
-            <div className="flex items-center space-x-2 bg-gray-100 rounded-lg p-1">
+            <div className="flex items-center space-x-2 rounded-lg bg-gray-100 p-1">
               <Button
                 variant={displayMode === 'dots' ? 'default' : 'ghost'}
                 size="sm"
                 onClick={() => setDisplayMode('dots')}
+                title="Vista visual"
               >
                 <Eye className="h-4 w-4" />
               </Button>
@@ -301,6 +234,7 @@ export const BrailleDisplay: React.FC<BrailleDisplayProps> = ({
                 variant={displayMode === 'binary' ? 'default' : 'ghost'}
                 size="sm"
                 onClick={() => setDisplayMode('binary')}
+                title="Vista binaria"
               >
                 101
               </Button>
@@ -308,50 +242,18 @@ export const BrailleDisplay: React.FC<BrailleDisplayProps> = ({
                 variant={displayMode === 'unicode' ? 'default' : 'ghost'}
                 size="sm"
                 onClick={() => setDisplayMode('unicode')}
+                title="Vista Unicode"
               >
                 Br
               </Button>
             </div>
-            
-            {/* Controles de vista */}
-            <div className="flex items-center space-x-2 bg-gray-100 rounded-lg p-1">
-              <Button
-                variant={viewMode === 'grid' ? 'default' : 'ghost'}
-                size="sm"
-                onClick={() => setViewMode('grid')}
-              >
-                <Grid className="h-4 w-4" />
-              </Button>
-              <Button
-                variant={viewMode === 'list' ? 'default' : 'ghost'}
-                size="sm"
-                onClick={() => setViewMode('list')}
-              >
-                <List className="h-4 w-4" />
-              </Button>
-            </div>
-            
-            {/* Exportación */}
+
             <div className="flex items-center space-x-2">
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => setShowSettings(!showSettings)}
-              >
-                <Settings className="h-4 w-4" />
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handlePrint}
-                title="Imprimir"
-              >
-                <Printer className="h-4 w-4" />
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => onExport?.('text')}
+                onClick={() => setShowExportOptions(!showExportOptions)}
+                title="Descargar"
               >
                 <Download className="h-4 w-4" />
               </Button>
@@ -359,32 +261,118 @@ export const BrailleDisplay: React.FC<BrailleDisplayProps> = ({
           </div>
         </div>
       </div>
-      
-      {/* Panel de configuración */}
-      {showSettings && (
-        <div className="border-b border-gray-200 p-4 bg-gray-50">
-          <h3 className="text-sm font-semibold text-gray-900 mb-3">
-            Opciones de Exportación
+
+      {showExportOptions && (
+        <div className="border-b border-gray-200 bg-gray-50 p-4">
+          <h3 className="mb-3 text-sm font-semibold text-gray-900">
+            Opciones de Exportacion
           </h3>
-          <div className="flex flex-wrap gap-2 mb-3">
+          <div className="mb-4 space-y-4">
+            <section className="space-y-2">
+              <h4 className="text-xs font-semibold uppercase tracking-wide text-gray-500">
+                Cuadratin
+              </h4>
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                <label className="space-y-1 text-sm text-gray-700">
+                  <span className="block font-medium">Ancho (mm)</span>
+                  <input
+                    type="number"
+                    min={MIN_CELL_WIDTH_MM}
+                    max={MAX_CELL_WIDTH_MM}
+                    step="0.1"
+                    value={normalizedPrintLayout.cellWidthMm}
+                    onChange={(event) => updatePrintLayout('cellWidthMm', Number(event.target.value))}
+                    className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900"
+                  />
+                </label>
+                <label className="space-y-1 text-sm text-gray-700">
+                  <span className="block font-medium">Alto (mm)</span>
+                  <input
+                    type="number"
+                    min={MIN_CELL_HEIGHT_MM}
+                    max={MAX_CELL_HEIGHT_MM}
+                    step="0.1"
+                    value={normalizedPrintLayout.cellHeightMm}
+                    onChange={(event) => updatePrintLayout('cellHeightMm', Number(event.target.value))}
+                    className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900"
+                  />
+                </label>
+              </div>
+            </section>
+
+            <section className="space-y-2">
+              <h4 className="text-xs font-semibold uppercase tracking-wide text-gray-500">
+                Espaciado
+              </h4>
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+                <label className="space-y-1 text-sm text-gray-700">
+                  <span className="block font-medium">Cuadratines por linea</span>
+                  <input
+                    type="number"
+                    min={1}
+                    step="1"
+                    value={normalizedPrintLayout.cellsPerLine}
+                    onChange={(event) => updatePrintLayout('cellsPerLine', Number(event.target.value))}
+                    className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900"
+                  />
+                </label>
+                <label className="space-y-1 text-sm text-gray-700">
+                  <span className="block font-medium">Entre cuadratines (mm)</span>
+                  <input
+                    type="number"
+                    min={MIN_CELL_GAP_MM}
+                    max={MAX_CELL_GAP_MM}
+                    step="0.1"
+                    value={normalizedPrintLayout.cellGapMm}
+                    onChange={(event) => updatePrintLayout('cellGapMm', Number(event.target.value))}
+                    className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900"
+                  />
+                </label>
+                <label className="space-y-1 text-sm text-gray-700">
+                  <span className="block font-medium">Interlineado PDF (mm)</span>
+                  <input
+                    type="number"
+                    min={MIN_ROW_GAP_MM}
+                    max={MAX_ROW_GAP_MM}
+                    step="0.1"
+                    value={normalizedPrintLayout.rowGapMm}
+                    onChange={(event) => updatePrintLayout('rowGapMm', Number(event.target.value))}
+                    className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900"
+                  />
+                </label>
+              </div>
+            </section>
+          </div>
+          <div className="mb-3 text-xs font-medium text-gray-600">
+            Fila: {printRowWidthMm.toFixed(1)} / {LETTER_CONTENT_WIDTH_MM.toFixed(1)} mm
+          </div>
+          <div className="mb-3 flex flex-wrap gap-2">
             <Button
               variant="outline"
               size="sm"
-              onClick={() => onExport?.('text')}
+              onClick={handlePdfPreview}
+            >
+              <FileSearch className="mr-2 h-4 w-4" />
+              Previsualizar
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => onExport?.('text', exportOptions)}
             >
               Exportar como Texto
             </Button>
             <Button
               variant="outline"
               size="sm"
-              onClick={() => onExport?.('json')}
+              onClick={() => onExport?.('json', exportOptions)}
             >
               Exportar como JSON
             </Button>
             <Button
               variant="outline"
               size="sm"
-              onClick={() => onExport?.('pdf')}
+              onClick={() => onExport?.('pdf', exportOptions)}
             >
               Exportar como PDF
             </Button>
@@ -394,28 +382,20 @@ export const BrailleDisplay: React.FC<BrailleDisplayProps> = ({
               type="checkbox"
               id="mirror-mode"
               checked={mirrorMode}
-              onChange={(e) => setMirrorMode(e.target.checked)}
-              className="w-4 h-4 text-blue-600 rounded"
+              onChange={(event) => setMirrorMode(event.target.checked)}
+              className="h-4 w-4 rounded text-blue-600"
             />
             <label htmlFor="mirror-mode" className="text-sm text-gray-700">
-              Modo espejo para punzones (invierte horizontalmente)
+              Modo espejo para punzones (invierte puntos y orden horizontal)
             </label>
           </div>
         </div>
       )}
-      
-      {/* Contenido principal */}
-      <div className="min-h-[200px] max-h-[400px] overflow-y-auto">
-        {displayMode === 'unicode' ? (
-          renderTextView()
-        ) : viewMode === 'grid' ? (
-          renderGridView()
-        ) : (
-          renderListView()
-        )}
+
+      <div className="max-h-[400px] min-h-[200px] overflow-y-auto">
+        {displayMode === 'unicode' ? renderTextView() : renderGridView()}
       </div>
-      
-      {/* Estadísticas */}
+
       <div className="border-t border-gray-200 p-4">
         {renderStatistics()}
       </div>
