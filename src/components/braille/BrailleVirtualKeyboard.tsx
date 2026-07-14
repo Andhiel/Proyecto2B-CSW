@@ -1,8 +1,20 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { BrailleDots } from '@/types/braille';
 import { UnicodeBrailleConverter } from '@/lib/unicode-braille-converter';
+import { BrailleSymbol } from './BrailleSymbol';
+
+const NUMPAD_TO_DOT_INDEX: Record<string, number> = {
+  Numpad7: 0,
+  Numpad4: 1,
+  Numpad1: 2,
+  Numpad8: 3,
+  Numpad5: 4,
+  Numpad2: 5
+};
+
+const DOT_TO_NUMPAD_KEY = ['7', '4', '1', '8', '5', '2'];
 
 interface BrailleVirtualKeyboardProps {
   onSymbolAdd: (dots: BrailleDots, unicodeChar: string) => void;
@@ -22,14 +34,17 @@ export const BrailleVirtualKeyboard: React.FC<BrailleVirtualKeyboardProps> = ({
   const [activeDots, setActiveDots] = useState<BrailleDots>([
     false, false, false, false, false, false
   ]);
+  const isBlankSymbol = activeDots.every(d => !d);
 
   /**
    * Alterna un punto específico
    */
   const toggleDot = (index: number) => {
-    const newDots = [...activeDots] as BrailleDots;
-    newDots[index] = !newDots[index];
-    setActiveDots(newDots);
+    setActiveDots((currentDots) => {
+      const newDots = [...currentDots] as BrailleDots;
+      newDots[index] = !newDots[index];
+      return newDots;
+    });
   };
 
   /**
@@ -42,11 +57,42 @@ export const BrailleVirtualKeyboard: React.FC<BrailleVirtualKeyboardProps> = ({
     setActiveDots([false, false, false, false, false, false]);
   };
 
+  useEffect(() => {
+    const handlePhysicalKeyboard = (event: KeyboardEvent) => {
+      if (event.repeat) return;
+
+      const dotIndex = NUMPAD_TO_DOT_INDEX[event.code];
+      if (dotIndex !== undefined) {
+        event.preventDefault();
+        toggleDot(dotIndex);
+        return;
+      }
+
+      if (event.code === 'NumpadEnter' || event.code === 'Enter') {
+        event.preventDefault();
+        handleAddSymbol();
+        return;
+      }
+
+      if (event.code === 'Backspace') {
+        event.preventDefault();
+        onBackspace();
+      }
+    };
+
+    window.addEventListener('keydown', handlePhysicalKeyboard);
+
+    return () => {
+      window.removeEventListener('keydown', handlePhysicalKeyboard);
+    };
+  });
+
   /**
    * Renderiza un punto individual
    */
   const renderDot = (index: number, row: number, col: number) => {
     const dotNumber = index + 1;
+    const shortcutKey = DOT_TO_NUMPAD_KEY[index];
     return (
       <button
         key={index}
@@ -59,10 +105,14 @@ export const BrailleVirtualKeyboard: React.FC<BrailleVirtualKeyboardProps> = ({
             : 'bg-gray-200 border-gray-300 text-gray-500 hover:bg-gray-300'
           }
         `}
-        aria-label={`Punto ${dotNumber}`}
+        aria-label={`Punto ${dotNumber}. Tecla ${shortcutKey} del teclado numerico`}
         aria-pressed={activeDots[index]}
+        title={`Tecla ${shortcutKey} del teclado numerico`}
       >
-        {dotNumber}
+        <span className="flex flex-col items-center leading-none">
+          <span>{dotNumber}</span>
+          <span className="mt-1 text-[10px] opacity-75">N{shortcutKey}</span>
+        </span>
       </button>
     );
   };
@@ -96,8 +146,12 @@ export const BrailleVirtualKeyboard: React.FC<BrailleVirtualKeyboardProps> = ({
       <div className="flex justify-center mb-6">
         <div className="bg-blue-50 rounded-lg p-4 border border-blue-200 text-center">
           <div className="text-sm text-gray-600 mb-2">Símbolo actual:</div>
-          <div className="text-4xl mb-2">
-            {UnicodeBrailleConverter.dotsToUnicode(activeDots)}
+          <div className="flex justify-center mb-2">
+            <BrailleSymbol
+              dots={activeDots}
+              size="md"
+              displayMode="dots"
+            />
           </div>
           <div className="text-xs text-gray-500 font-mono">
             [{activeDots.map(d => d ? '1' : '0').join(',')}]
@@ -110,9 +164,8 @@ export const BrailleVirtualKeyboard: React.FC<BrailleVirtualKeyboardProps> = ({
         <button
           onClick={handleAddSymbol}
           className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-semibold"
-          disabled={activeDots.every(d => !d)}
         >
-          Agregar Símbolo
+          {isBlankSymbol ? 'Agregar Espacio' : 'Agregar Simbolo'}
         </button>
         
         <button
@@ -132,8 +185,8 @@ export const BrailleVirtualKeyboard: React.FC<BrailleVirtualKeyboardProps> = ({
 
       {/* Instrucciones */}
       <div className="mt-4 text-center text-sm text-gray-600">
-        <p>Selecciona los puntos activos y haz clic en "Agregar Símbolo"</p>
-        <p className="text-xs mt-1">Puntos: 1-3 (columna izquierda), 4-6 (columna derecha)</p>
+        <p>Usa 7, 4, 1 y 8, 5, 2 del teclado numerico para alternar puntos.</p>
+        <p className="text-xs mt-1">Enter agrega el cuadratin actual; Backspace borra el ultimo.</p>
       </div>
     </div>
   );
