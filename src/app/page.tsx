@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import Header from '@/components/Header'
 import TextInput from '@/components/braille/TextInput'
 import BrailleDisplay from '@/components/braille/BrailleDisplay'
+import { BrailleSymbol } from '@/components/braille/BrailleSymbol'
 import { BrailleVirtualKeyboard } from '@/components/braille/BrailleVirtualKeyboard'
 import Footer from '@/components/Footer'
 import { SpanishToBrailleTranscriber } from '@/lib/braille-transcriber'
@@ -12,6 +13,64 @@ import { UnicodeBrailleConverter } from '@/lib/unicode-braille-converter'
 import { BrailleOutput } from '@/types/braille'
 import { BrailleDots } from '@/types/braille'
 import jsPDF from 'jspdf'
+
+interface BraillePrintLayoutOptions {
+  cellWidthMm: number
+  cellHeightMm: number
+  cellsPerLine: number
+  cellGapMm: number
+  rowGapMm: number
+}
+
+interface BrailleExportOptions {
+  mirrorMode?: boolean
+  layout?: BraillePrintLayoutOptions
+  preview?: boolean
+}
+
+const LETTER_CONTENT_WIDTH_MM = 195.9
+const MIN_CELL_WIDTH_MM = 3
+const MAX_CELL_WIDTH_MM = 20
+const MIN_CELL_HEIGHT_MM = 5
+const MAX_CELL_HEIGHT_MM = 25
+const MIN_CELL_GAP_MM = 0
+const MAX_CELL_GAP_MM = 5
+const MIN_ROW_GAP_MM = 0
+const MAX_ROW_GAP_MM = 12
+const DEFAULT_PRINT_LAYOUT: BraillePrintLayoutOptions = {
+  cellWidthMm: 5.5,
+  cellHeightMm: 9,
+  cellsPerLine: 32,
+  cellGapMm: 0.6,
+  rowGapMm: 1
+}
+
+const clamp = (value: number, min: number, max: number) => (
+  Math.min(Math.max(value, min), max)
+)
+
+const normalizePrintLayout = (layout?: Partial<BraillePrintLayoutOptions>): BraillePrintLayoutOptions => {
+  const merged = { ...DEFAULT_PRINT_LAYOUT, ...layout }
+  const cellGapMm = clamp(Number.isFinite(merged.cellGapMm) ? merged.cellGapMm : DEFAULT_PRINT_LAYOUT.cellGapMm, MIN_CELL_GAP_MM, MAX_CELL_GAP_MM)
+  const maxCellsPerLine = Math.max(1, Math.floor((LETTER_CONTENT_WIDTH_MM + cellGapMm) / (MIN_CELL_WIDTH_MM + cellGapMm)))
+  const cellsPerLine = clamp(Math.round(Number.isFinite(merged.cellsPerLine) ? merged.cellsPerLine : DEFAULT_PRINT_LAYOUT.cellsPerLine), 1, maxCellsPerLine)
+  const maxCellWidthForLine = (LETTER_CONTENT_WIDTH_MM - (cellGapMm * (cellsPerLine - 1))) / cellsPerLine
+  const cellWidthMm = clamp(
+    Number.isFinite(merged.cellWidthMm) ? merged.cellWidthMm : DEFAULT_PRINT_LAYOUT.cellWidthMm,
+    MIN_CELL_WIDTH_MM,
+    Math.max(MIN_CELL_WIDTH_MM, Math.min(MAX_CELL_WIDTH_MM, maxCellWidthForLine))
+  )
+  const cellHeightMm = clamp(Number.isFinite(merged.cellHeightMm) ? merged.cellHeightMm : DEFAULT_PRINT_LAYOUT.cellHeightMm, MIN_CELL_HEIGHT_MM, MAX_CELL_HEIGHT_MM)
+  const rowGapMm = clamp(Number.isFinite(merged.rowGapMm) ? merged.rowGapMm : DEFAULT_PRINT_LAYOUT.rowGapMm, MIN_ROW_GAP_MM, MAX_ROW_GAP_MM)
+
+  return {
+    cellWidthMm: Number(cellWidthMm.toFixed(2)),
+    cellHeightMm: Number(cellHeightMm.toFixed(2)),
+    cellsPerLine,
+    cellGapMm: Number(cellGapMm.toFixed(2)),
+    rowGapMm: Number(rowGapMm.toFixed(2))
+  }
+}
 
 export default function Home() {
   const [conversionMode, setConversionMode] = useState<'spanish-to-braille' | 'braille-to-spanish'>('spanish-to-braille')
@@ -26,12 +85,16 @@ export default function Home() {
   
   const transcriber = new SpanishToBrailleTranscriber()
   const reverseTranscriber = new BrailleToSpanishTranscriber()
+  const isVirtualKeyboardMode = conversionMode === 'braille-to-spanish' && inputMethod === 'virtual-keyboard'
 
   /**
    * Maneja el cambio de texto y limpia errores si el texto cambia
    */
   const handleTextChange = (newText: string) => {
     setInputText(newText)
+    if (conversionMode === 'braille-to-spanish' && inputMethod === 'virtual-keyboard' && newText === '') {
+      setBrailleSymbols([])
+    }
     // Limpiar errores cuando el texto cambia
     if (errors.length > 0 || unsupportedCharacters.length > 0) {
       setErrors([])
@@ -43,9 +106,10 @@ export default function Home() {
    * Maneja la adición de símbolo desde el teclado virtual
    */
   const handleVirtualKeyboardAdd = (dots: BrailleDots, unicodeChar: string) => {
-    setBrailleSymbols([...brailleSymbols, { dots, unicode: unicodeChar }])
-    // Actualizar el texto de entrada con el carácter Unicode
-    setInputText(inputText + unicodeChar)
+    const newSymbols = [...brailleSymbols, { dots, unicode: unicodeChar }]
+    setBrailleSymbols(newSymbols)
+    // Mantener un valor interno para habilitar la transcripcion; la vista usa cuadratines.
+    setInputText(newSymbols.map(s => s.unicode).join(''))
   }
 
   /**
@@ -71,7 +135,9 @@ export default function Home() {
    * Maneja la transcripción del texto
    */
   const handleTranscribe = async () => {
-    if (!inputText.trim()) return
+    const hasVirtualKeyboardInput = isVirtualKeyboardMode && brailleSymbols.length > 0
+
+    if (!hasVirtualKeyboardInput && !inputText.trim()) return
 
     setIsProcessing(true)
     setErrors([])
@@ -133,7 +199,7 @@ export default function Home() {
   /**
    * Maneja la exportación de resultados
    */
-  const handleExport = (format: 'text' | 'json' | 'pdf') => {
+  const handleExport = (format: 'text' | 'json' | 'pdf', options?: BrailleExportOptions) => {
     if (!transcriptionResult) return
     
     switch (format) {
@@ -144,16 +210,25 @@ export default function Home() {
         exportAsJSON(transcriptionResult)
         break
       case 'pdf':
-        exportAsPDF(transcriptionResult)
+        exportAsPDF(transcriptionResult, options)
         break
     }
   }
+
+  const mirrorDots = (dots: BrailleDots): BrailleDots => [
+    dots[3],
+    dots[4],
+    dots[5],
+    dots[0],
+    dots[1],
+    dots[2]
+  ]
   
   /**
    * Exporta como archivo de texto
    */
   const exportAsText = (result: BrailleOutput) => {
-    const content = `Texto Original:\n${result.originalText}\n\nTranscripción Braille:\n${result.brailleText}\n\nEstadísticas:\nCaracteres: ${result.statistics.totalCharacters}\nSímbolos: ${result.statistics.totalSymbols}\nTiempo: ${result.statistics.processingTime.toFixed(2)}ms`
+    const content = `Texto Original:\n${result.originalText}\n\nTranscripcion Braille:\n${result.brailleText}\n\nEstadisticas:\nCaracteres: ${result.statistics.totalCharacters}\nSimbolos: ${result.statistics.totalSymbols}`
     
     const blob = new Blob([content], { type: 'text/plain' })
     const url = URL.createObjectURL(blob)
@@ -168,7 +243,12 @@ export default function Home() {
    * Exporta como JSON
    */
   const exportAsJSON = (result: BrailleOutput) => {
-    const content = JSON.stringify(result, null, 2)
+    const statistics = {
+      totalCharacters: result.statistics.totalCharacters,
+      totalSymbols: result.statistics.totalSymbols,
+      unrecognizedCharacters: result.statistics.unrecognizedCharacters
+    }
+    const content = JSON.stringify({ ...result, statistics }, null, 2)
     
     const blob = new Blob([content], { type: 'application/json' })
     const url = URL.createObjectURL(blob)
@@ -182,31 +262,213 @@ export default function Home() {
   /**
    * Exporta como PDF con jsPDF
    */
-  const exportAsPDF = (result: BrailleOutput) => {
+  const exportAsPDF = (result: BrailleOutput, options?: BrailleExportOptions) => {
+    const mirrorMode = options?.mirrorMode ?? false
+    const layout = normalizePrintLayout(options?.layout)
+    const previewWindow = options?.preview ? window.open('', '_blank') : null
+
+    if (previewWindow) {
+      previewWindow.document.write('<p style="font-family: Arial, sans-serif; padding: 16px;">Generando previsualizacion PDF...</p>')
+      previewWindow.document.close()
+    }
+
     const pdf = new jsPDF({
       orientation: 'portrait',
       unit: 'mm',
-      format: 'a4'
+      format: 'letter'
     })
+
+    {
+      const pageWidth = pdf.internal.pageSize.getWidth()
+      const pageHeight = pdf.internal.pageSize.getHeight()
+      const margin = 10
+      const contentWidth = pageWidth - (margin * 2)
+      const cellWidth = layout.cellWidthMm
+      const cellHeight = layout.cellHeightMm
+      const cellGap = layout.cellGapMm
+      const rowGap = layout.rowGapMm
+      const dotRadius = clamp(Math.min(cellWidth / 9.6, cellHeight / 15.6), 0.3, 1.5)
+      const maxSymbolsPerRow = Math.min(
+        layout.cellsPerLine,
+        Math.max(1, Math.floor((contentWidth + cellGap) / (cellWidth + cellGap)))
+      )
+      const modeLabel = mirrorMode
+        ? 'MODO ESPEJO - Para uso con punzones'
+        : 'Vista normal'
+
+      let y = margin
+
+      const printableDots = (dots: BrailleDots): BrailleDots => (
+        mirrorMode ? mirrorDots(dots) : dots
+      )
+
+      const drawHeader = (compact = false) => {
+        pdf.setDrawColor(0, 0, 0)
+        pdf.setLineWidth(0.8)
+        pdf.setFont('helvetica', 'bold')
+        pdf.setFontSize(compact ? 13 : 18)
+        pdf.setTextColor(0, 0, 0)
+        pdf.text('Transcripcion Braille', margin, y)
+
+        pdf.setFont('helvetica', 'normal')
+        pdf.setFontSize(9)
+        pdf.setTextColor(90, 90, 90)
+        pdf.text(modeLabel, margin, y + 6)
+
+        pdf.line(margin, y + 10, pageWidth - margin, y + 10)
+        y += compact ? 17 : 20
+      }
+
+      const drawInfoBox = () => {
+        const originalTextLines = pdf.splitTextToSize(`Texto original: ${result.originalText}`, contentWidth - 12)
+        const boxHeight = 18 + (originalTextLines.length * 5)
+
+        pdf.setFillColor(245, 245, 245)
+        pdf.rect(margin, y, contentWidth, boxHeight, 'F')
+        pdf.setFillColor(0, 0, 0)
+        pdf.rect(margin, y, 1.4, boxHeight, 'F')
+
+        pdf.setFont('helvetica', 'normal')
+        pdf.setFontSize(9)
+        pdf.setTextColor(50, 50, 50)
+        pdf.text(originalTextLines, margin + 5, y + 7)
+        pdf.text(`Total de simbolos: ${result.symbols.length}`, margin + 5, y + boxHeight - 8)
+        pdf.text(`Fecha: ${new Date().toLocaleDateString('es-ES')}`, margin + 5, y + boxHeight - 3)
+        y += boxHeight + 9
+      }
+
+      const drawCell = (x: number, cellY: number, dots: BrailleDots) => {
+        const dotsGrid = [
+          dots[0], dots[3],
+          dots[1], dots[4],
+          dots[2], dots[5]
+        ]
+        const slotWidth = cellWidth / 2
+        const slotHeight = cellHeight / 3
+
+        pdf.setDrawColor(0, 0, 0)
+        pdf.setLineWidth(0.18)
+        pdf.setFillColor(255, 255, 255)
+        pdf.rect(x, cellY, cellWidth, cellHeight, 'FD')
+
+        dotsGrid.forEach((dot, index) => {
+          const col = index % 2
+          const row = Math.floor(index / 2)
+          const dotX = x + (slotWidth * col) + (slotWidth / 2)
+          const dotY = cellY + (slotHeight * row) + (slotHeight / 2)
+
+          pdf.setFillColor(dot ? 0 : 224, dot ? 0 : 224, dot ? 0 : 224)
+          pdf.circle(dotX, dotY, dotRadius, 'F')
+        })
+      }
+
+      const drawFooter = () => {
+        pdf.setDrawColor(204, 204, 204)
+        pdf.line(margin, pageHeight - 13, pageWidth - margin, pageHeight - 13)
+        pdf.setFont('helvetica', 'normal')
+        pdf.setFontSize(8)
+        pdf.setTextColor(130, 130, 130)
+        pdf.text('Generado con Transcriptor Braille - Estandar Unicode Braille', pageWidth / 2, pageHeight - 7, {
+          align: 'center'
+        })
+      }
+
+      const addFormattedPage = () => {
+        drawFooter()
+        pdf.addPage()
+        y = margin
+        drawHeader(true)
+      }
+
+      drawHeader()
+      drawInfoBox()
+
+      let currentColumn = 0
+
+      result.symbols.forEach((symbol) => {
+        if (currentColumn >= maxSymbolsPerRow) {
+          currentColumn = 0
+          y += cellHeight + rowGap
+        }
+
+        if (y + cellHeight > pageHeight - 28) {
+          addFormattedPage()
+          currentColumn = 0
+        }
+
+        const x = mirrorMode
+          ? pageWidth - margin - cellWidth - (currentColumn * (cellWidth + cellGap))
+          : margin + (currentColumn * (cellWidth + cellGap))
+        drawCell(x, y, printableDots(symbol.dots))
+        currentColumn++
+      })
+
+      y += cellHeight + 14
+      if (y + 42 > pageHeight - 18) {
+        addFormattedPage()
+      }
+
+      pdf.setFillColor(232, 244, 248)
+      pdf.setDrawColor(184, 212, 227)
+      pdf.setLineWidth(0.3)
+      pdf.rect(margin, y, contentWidth, 36, 'FD')
+      pdf.setFont('helvetica', 'bold')
+      pdf.setFontSize(10)
+      pdf.setTextColor(0, 86, 179)
+      pdf.text('Instrucciones de uso:', margin + 4, y + 7)
+
+      pdf.setFont('helvetica', 'normal')
+      pdf.setFontSize(8.5)
+      pdf.setTextColor(50, 50, 50)
+      const instructions = [
+        'Cada cuadratin representa un caracter en Braille',
+        'Los puntos negros deben punzonarse con el punzon',
+        'Los puntos grises son guias de referencia',
+        mirrorMode
+          ? 'Esta hoja esta reflejada para punzonar por el reverso'
+          : 'Para punzonar, activa el modo espejo antes de previsualizar o exportar'
+      ]
+      instructions.forEach((instruction, index) => {
+        pdf.text(`- ${instruction}`, margin + 6, y + 14 + (index * 5))
+      })
+
+      y += 46
+      if (y + 16 <= pageHeight - 18) {
+        pdf.setFont('helvetica', 'normal')
+        pdf.setFontSize(9)
+        pdf.setTextColor(50, 50, 50)
+        pdf.text(`Caracteres: ${result.statistics.totalCharacters}`, margin, y)
+        pdf.text(`Simbolos: ${result.statistics.totalSymbols}`, margin, y + 5)
+      }
+
+      drawFooter()
+      if (options?.preview) {
+        const pdfBlob = pdf.output('blob')
+        const pdfUrl = URL.createObjectURL(pdfBlob)
+
+        if (previewWindow) {
+          previewWindow.location.href = pdfUrl
+        } else {
+          const previewLink = document.createElement('a')
+          previewLink.href = pdfUrl
+          previewLink.target = '_blank'
+          previewLink.rel = 'noopener noreferrer'
+          previewLink.click()
+        }
+
+        window.setTimeout(() => URL.revokeObjectURL(pdfUrl), 60000)
+        return
+      }
+
+      pdf.save('braille-transcripcion.pdf')
+      return
+    }
+    /*
     
     // Configuración
-    const pageWidth = pdf.internal.pageSize.getWidth()
-    const pageHeight = pdf.internal.pageSize.getHeight()
-    const margin = 20
-    const symbolWidth = 16
-    const symbolHeight = 24
-    const symbolSpacing = 6
-    const dotSize = 2.5
-    const maxSymbolsPerRow = Math.floor((pageWidth - 2 * margin) / (symbolWidth + symbolSpacing))
-    
-    let x = margin
-    let y = margin + 20
-    let symbolCount = 0
     
     // Título
-    pdf.setFontSize(16)
     pdf.text('Transcripción Braille', margin, margin)
-    pdf.setFontSize(10)
     pdf.text(`Texto original: ${result.originalText.substring(0, 50)}${result.originalText.length > 50 ? '...' : ''}`, margin, margin + 8)
     
     // Dibujar símbolos
@@ -267,14 +529,15 @@ export default function Home() {
     
     // Guardar PDF
     pdf.save('braille-transcripcion.pdf')
+    */
   }
-  
+
   return (
-    <main className="min-h-screen bg-gray-50">
+    <main className="min-h-screen bg-gray-50 pt-16">
       <Header />
       
       {/* Hero Section adaptado para el transcriptor */}
-      <section className="py-12 bg-gradient-to-br from-blue-50 to-indigo-100">
+      <section id="home" className="scroll-mt-20 py-12 bg-gradient-to-br from-blue-50 to-indigo-100">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-8">
             <h1 className="text-4xl md:text-5xl font-bold text-gray-900 mb-4">
@@ -385,7 +648,7 @@ export default function Home() {
           )}
           
           {/* Características principales */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+          <div id="features" className="scroll-mt-20 grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
             <div className="bg-white rounded-lg p-6 shadow-lg">
               <div className="text-blue-600 text-3xl font-bold mb-2">🔤</div>
               <div className="text-gray-900 font-semibold mb-1">Alfabeto Completo</div>
@@ -408,12 +671,13 @@ export default function Home() {
       </section>
       
       {/* Sección principal del transcriptor */}
-      <section className="py-12">
+      <section id="about" className="scroll-mt-20 py-12">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          <div className={isVirtualKeyboardMode ? 'space-y-8' : 'grid grid-cols-1 lg:grid-cols-2 gap-8'}>
             {/* Panel de entrada */}
-            <div className="space-y-6">
+            <div className={isVirtualKeyboardMode ? 'grid grid-cols-1 lg:grid-cols-2 gap-8 items-start' : 'space-y-6'}>
               <TextInput
+                className={isVirtualKeyboardMode ? 'order-2' : undefined}
                 value={inputText}
                 onChange={handleTextChange}
                 onTranscribe={handleTranscribe}
@@ -429,16 +693,40 @@ export default function Home() {
                     ? "Pega símbolos Braille Unicode (ej: ⠁⠃⠉⠙⠑)..."
                     : "Usa el teclado virtual para ingresar Braille..."
                 }
+                readOnly={conversionMode === 'braille-to-spanish' && inputMethod === 'virtual-keyboard'}
+                showTextActions={!(conversionMode === 'braille-to-spanish' && inputMethod === 'virtual-keyboard')}
+                visualContent={
+                  conversionMode === 'braille-to-spanish' && inputMethod === 'virtual-keyboard' ? (
+                    brailleSymbols.length > 0 ? (
+                      <div className="flex flex-wrap gap-3">
+                        {brailleSymbols.map((symbol, index) => (
+                          <BrailleSymbol
+                            key={index}
+                            dots={symbol.dots}
+                            size="md"
+                            displayMode="dots"
+                          />
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="flex h-56 items-center justify-center text-center text-gray-400">
+                        Usa el teclado virtual para ingresar Braille...
+                      </div>
+                    )
+                  ) : undefined
+                }
                 maxLength={5000}
               />
               
               {/* Teclado virtual (solo en modo Braille → Español) */}
               {conversionMode === 'braille-to-spanish' && inputMethod === 'virtual-keyboard' && (
-                <BrailleVirtualKeyboard
-                  onSymbolAdd={handleVirtualKeyboardAdd}
-                  onBackspace={handleVirtualKeyboardBackspace}
-                  onClear={handleVirtualKeyboardClear}
-                />
+                <div className="order-1">
+                  <BrailleVirtualKeyboard
+                    onSymbolAdd={handleVirtualKeyboardAdd}
+                    onBackspace={handleVirtualKeyboardBackspace}
+                    onClear={handleVirtualKeyboardClear}
+                  />
+                </div>
               )}
               
               {/* Vista previa de símbolos Braille (modo Unicode) */}
@@ -525,3 +813,4 @@ export default function Home() {
     </main>
   )
 }
+
