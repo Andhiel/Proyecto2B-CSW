@@ -1,115 +1,170 @@
-# Documentación Técnica del Código Fuente
+# Documentación Técnica de la Segunda Versión
 
-## 1. Visión General
+## 1. Contexto del proyecto
 
-Este documento proporciona una descripción detallada del código fuente del **Transcriptor Español a Braille**, incluyendo arquitectura, clases, interfaces y métodos implementados.
+Esta documentación corresponde a la segunda versión del proyecto de transcripción entre español y Braille. La primera versión sirvió como base conceptual y de tipado; la versión actual amplía la solución con una estructura de interfaz más completa, un flujo inverso Braille -> español, exportación de resultados y soporte para entrada manual mediante teclado Braille virtual.
 
-## 2. Estructura del Código
+El proyecto se implementa como una aplicación web con **Next.js 14**, **React 18**, **TypeScript 5.4** y **Tailwind CSS 3.4**. Toda la lógica de negocio se ejecuta en el cliente.
 
-### 2.1 Organización de Directorios
+### Objetivos funcionales
+
+- Transcribir texto español a Braille.
+- Convertir Braille a texto español.
+- Aceptar entrada en formato binario, Unicode Braille y teclado virtual.
+- Exportar resultados en texto, JSON y PDF.
+- Proveer validación, estadísticas y retroalimentación visual al usuario.
+
+## 2. Visión general de la arquitectura
+
+### 2.1 Capas del sistema
+
+La solución se organiza en cuatro capas claras:
+
+1. **Presentación**: componentes React en `src/app/` y `src/components/`.
+2. **Lógica de dominio**: transcriptores y convertidores en `src/lib/`.
+3. **Contratos de datos**: tipos e interfaces en `src/types/`.
+4. **Soporte y utilidades**: helpers en `src/utils/`.
+
+### 2.2 Principio de diseño
+
+La implementación sigue un patrón de separación de responsabilidades. Los componentes de interfaz no contienen reglas Braille complejas; en su lugar delegan la lógica al módulo de dominio. Esto facilita pruebas, mantenimiento y futuras extensiones.
+
+### 2.3 Flujo principal
+
+```mermaid
+flowchart LR
+  A[Usuario] --> B[TextInput o BrailleVirtualKeyboard]
+  B --> C[src/app/page.tsx]
+  C --> D[SpanishToBrailleTranscriber]
+  C --> E[BrailleToSpanishTranscriber]
+  C --> F[UnicodeBrailleConverter]
+  D --> G[BrailleOutput]
+  E --> H[Salida inversa]
+  G --> I[BrailleDisplay]
+  H --> I
+  I --> J[Exportación TXT / JSON / PDF]
 ```
-src/
-├── app/                          # Next.js App Router
-│   ├── layout.tsx               # Layout principal de la aplicación
-│   ├── page.tsx                 # Página principal del transcriptor
-│   └── globals.css              # Estilos globales
-├── components/                   # Componentes React
-│   ├── braille/                 # Componentes específicos Braille
-│   │   ├── BrailleSymbol.tsx    # Visualización de símbolos Braille
-│   │   ├── BrailleDisplay.tsx   # Panel de resultados
-│   │   └── TextInput.tsx        # Entrada de texto
-│   ├── ui/                      # Componentes UI reutilizables
-│   │   └── Button.tsx          # Componente botón
-│   ├── Header.tsx              # Header de navegación
-│   ├── Hero.tsx                # Sección hero
-│   ├── Features.tsx            # Características
-│   └── Footer.tsx              # Footer
-├── lib/                         # Lógica de negocio
-│   ├── braille-mapper.ts        # Mapeo caracteres a Braille
-│   └── braille-transcriber.ts   # Motor de transcripción
-├── types/                       # Definiciones TypeScript
-│   └── braille.ts              # Tipos del sistema Braille
-└── utils/                       # Utilidades
-    └── cn.ts                    # Utilidad de clases CSS
-```
 
-## 3. Tipos e Interfaces
+## 3. Estructura técnica del repositorio
 
-### 3.1 BrailleDots
+### 3.1 Carpetas funcionales
+
+- `src/app/`: layout global y página principal.
+- `src/components/`: componentes visuales reutilizables.
+- `src/components/braille/`: componentes especializados para Braille.
+- `src/components/ui/`: primitivas de UI.
+- `src/lib/`: motor de transcripción y conversores.
+- `src/types/`: tipos compartidos.
+- `src/utils/`: utilidades generales.
+- `tests/`: pruebas automatizadas.
+- `Dumentacion/`: documentación del proyecto.
+
+### 3.2 Archivos de configuración
+
+- `package.json`
+- `tsconfig.json`
+- `next.config.js`
+- `postcss.config.js`
+- `tailwind.config.js`
+- `jest.config.js`
+- `jest.setup.js`
+
+## 4. Stack tecnológico
+
+### 4.1 Dependencias de ejecución
+
+- `next`: framework principal.
+- `react` y `react-dom`: interfaz y rendering.
+- `jspdf`: exportación a PDF.
+- `lucide-react`: iconos.
+- `@radix-ui/react-slot`: composición de componentes.
+- `class-variance-authority`, `clsx`, `tailwind-merge`: gestión de clases CSS.
+- `tailwindcss-animate`: animaciones de utilidad.
+
+### 4.2 Dependencias de desarrollo
+
+- `typescript`
+- `eslint` y `eslint-config-next`
+- `jest`
+- `babel-jest`
+- `@testing-library/react`
+- `@testing-library/jest-dom`
+- `@types/node`, `@types/react`, `@types/react-dom`, `@types/jest`
+- `postcss`
+- `autoprefixer`
+
+## 5. Configuración base de la aplicación
+
+### 5.1 Layout global
+
+Archivo: `src/app/layout.tsx`
+
+El layout global define:
+
+- idioma del documento en español,
+- carga de la fuente Inter,
+- clases globales para antialiasing y fondo,
+- estructura raíz del documento HTML.
+
+### 5.2 Metadata global
+
+La metadata actual expone:
+
+- título: Proyecto Primer Bimestre,
+- descripción: proyecto web desarrollado para el primer bimestre de Construcción de Software.
+
+### 5.3 Configuración de Next.js
+
+`next.config.js` contiene:
+
+- dominios de imágenes permitidos,
+- variables de entorno estáticas.
+
+### 5.4 TypeScript
+
+`tsconfig.json` está configurado con:
+
+- `strict: true`,
+- `noEmit: true`,
+- `moduleResolution: bundler`,
+- alias:
+  - `@/*` -> `src/*`,
+  - `@/components/*` -> `src/components/*`,
+  - `@/utils/*` -> `src/utils/*`.
+
+## 6. Contratos de datos
+
+### 6.1 `BrailleDots`
+
 ```typescript
-/**
- * Representación de un símbolo Braille (cuadratín)
- * El cuadratín tiene 6 puntos organizados en dos columnas de tres puntos cada una
- * 
- * Estructura del cuadratín:
- * ┌─────┐
- * │ 1 ● │
- * │ 2 ● │
- * │ 3 ● │
- * │ 4 ● │
- * │ 5 ● │
- * │ 6 ● │
- * └─────┘
- */
-export type BrailleDots = [boolean, boolean, boolean, boolean, boolean, boolean];
+type BrailleDots = [boolean, boolean, boolean, boolean, boolean, boolean];
 ```
 
-**Descripción**: Array de 6 booleanos que representa los puntos del cuadratín Braille.
-**Uso**: Para representar visualmente cada símbolo Braille.
-**Ejemplo**: `[true, false, false, false, false, false]` representa la letra 'A'.
+Representa una celda Braille de 6 puntos. El orden lógico es:
 
-### 3.2 BrailleSymbol
+- índice 0: punto 1,
+- índice 1: punto 2,
+- índice 2: punto 3,
+- índice 3: punto 4,
+- índice 4: punto 5,
+- índice 5: punto 6.
+
+### 6.2 `BrailleSymbol`
+
 ```typescript
-/**
- * Símbolo Braille completo con su representación visual
- */
-export interface BrailleSymbol {
-  /** Array de 6 booleanos representando los puntos [1,2,3,4,5,6] */
+interface BrailleSymbol {
   dots: BrailleDots;
-  
-  /** Carácter español que representa */
   character: string;
-  
-  /** Descripción del símbolo */
   description: string;
 }
 ```
 
-**Descripción**: Interfaz que define un símbolo Braille completo.
-**Propiedades**:
-- `dots`: Configuración de puntos del cuadratín
-- `character`: Carácter español correspondiente
-- `description`: Descripción legible del símbolo
+Se utiliza para describir cada símbolo Braille con su patrón, carácter asociado y nombre legible.
 
-### 3.3 Token
+### 6.3 `TokenType`
+
 ```typescript
-/**
- * Token procesado del texto español
- */
-export interface Token {
-  /** Carácter o símbolo original */
-  character: string;
-  
-  /** Tipo de token (letra, número, signo, etc.) */
-  type: TokenType;
-  
-  /** Símbolo Braille correspondiente */
-  brailleSymbol?: BrailleSymbol;
-  
-  /** Posición en el texto original */
-  position: number;
-}
-```
-
-**Descripción**: Representa una unidad procesada del texto de entrada.
-**Uso**: Para el análisis y procesamiento del texto español.
-
-### 3.4 TokenType
-```typescript
-/**
- * Tipos de tokens reconocidos por el sistema
- */
-export enum TokenType {
+enum TokenType {
   LETTER = 'letter',
   NUMBER = 'number',
   ACCENTED_VOWEL = 'accented_vowel',
@@ -119,537 +174,581 @@ export enum TokenType {
 }
 ```
 
-**Descripción**: Enumeración de tipos de caracteres reconocidos.
-**Valores**:
-- `LETTER`: Letras del alfabeto español
-- `NUMBER`: Dígitos numéricos 0-9
-- `ACCENTED_VOWEL`: Vocales acentuadas (á, é, í, ó, ú)
-- `PUNCTUATION`: Signos de puntuación
-- `SPACE`: Espacios en blanco
-- `UNKNOWN`: Caracteres no reconocidos
+Clasifica cada carácter durante la tokenización.
 
-### 3.5 BrailleOutput
+### 6.4 `Token`
+
 ```typescript
-/**
- * Resultado de la transcripción completa
- */
-export interface BrailleOutput {
-  /** Texto original de entrada */
-  originalText: string;
-  
-  /** Símbolos Braille generados */
-  symbols: BrailleSymbol[];
-  
-  /** Tokens procesados */
-  tokens: Token[];
-  
-  /** Representación visual del texto Braille */
-  brailleText: string;
-  
-  /** Estadísticas de la transcripción */
-  statistics: TranscriptionStatistics;
+interface Token {
+  character: string;
+  type: TokenType;
+  brailleSymbol?: BrailleSymbol;
+  position: number;
 }
 ```
 
-**Descripción**: Contiene el resultado completo de una transcripción.
-**Uso**: Retornado por el motor de transcripción después de procesar el texto.
+Cada token conserva el carácter original, su tipo y, si aplica, el símbolo Braille resuelto.
 
-### 3.6 TranscriptionStatistics
+### 6.5 `TranscriptionStatistics`
+
 ```typescript
-/**
- * Estadísticas del proceso de transcripción
- */
-export interface TranscriptionStatistics {
-  /** Total de caracteres procesados */
+interface TranscriptionStatistics {
   totalCharacters: number;
-  
-  /** Total de símbolos Braille generados */
   totalSymbols: number;
-  
-  /** Cantidad de caracteres no reconocidos */
   unrecognizedCharacters: number;
-  
-  /** Tiempo de procesamiento en milisegundos */
   processingTime: number;
 }
 ```
 
-**Descripción**: Métricas sobre el proceso de transcripción.
-**Uso**: Para análisis de rendimiento y debugging.
-
-## 4. Clases Principales
-
-### 4.1 SpanishBrailleMapper
+### 6.6 `BrailleOutput`
 
 ```typescript
-/**
- * Clase que implementa el mapeo de caracteres españoles a símbolos Braille
- * Basado en el estándar Braille español (código Braille de 6 puntos)
- */
-export class SpanishBrailleMapper implements IBrailleMapper
-```
-
-**Responsabilidad**: Mapear caracteres españoles a su representación Braille.
-
-#### Constructor
-```typescript
-constructor()
-```
-**Descripción**: Inicializa el mapeo de caracteres españoles a Braille.
-**Efecto**: Crea el Map interno con todas las correspondencias.
-
-#### Métodos Principales
-
-##### getBrailleSymbol(character: string): BrailleSymbol | null
-```typescript
-/**
- * Obtiene el símbolo Braille para un carácter español
- * @param character Carácter a convertir
- * @returns Símbolo Braille correspondiente o null si no existe
- */
-```
-**Parámetros**:
-- `character`: Carácter español a convertir
-**Retorna**: Símbolo Braille o null si no existe mapeo
-**Ejemplo**:
-```typescript
-const mapper = new SpanishBrailleMapper();
-const symbol = mapper.getBrailleSymbol('a'); // → BrailleSymbol para 'A'
-```
-
-##### hasMapping(character: string): boolean
-```typescript
-/**
- * Verifica si un carácter tiene mapeo definido
- * @param character Carácter a verificar
- * @returns True si tiene mapeo, false en caso contrario
- */
-```
-
-##### isLetter(character: string): boolean
-```typescript
-/**
- * Verifica si un carácter es una letra
- * @param character Carácter a verificar
- * @returns True si es una letra
- */
-```
-
-##### isNumber(character: string): boolean
-```typescript
-/**
- * Verifica si un carácter es un número
- * @param character Carácter a verificar
- * @returns True si es un número
- */
-```
-
-##### isAccentedVowel(character: string): boolean
-```typescript
-/**
- * Verifica si un carácter es una vocal acentuada
- * @param character Carácter a verificar
- * @returns True si es una vocal acentuada
- */
-```
-
-#### Métodos Privados
-
-##### initializeMapping(): void
-```typescript
-/**
- * Inicializa el mapeo de caracteres españoles a Braille
- * Incluye: alfabeto, números, vocales acentuadas y signos de puntuación
- */
-```
-**Descripción**: Puebla el Map interno con todas las correspondencias.
-**Contenido**:
-- Alfabeto español (mayúsculas y minúsculas)
-- Vocales acentuadas
-- Números 0-9
-- Signos de puntuación básicos
-- Caracteres especiales del español
-
-##### addMapping(character: string, dots: BrailleDots, description: string): void
-```typescript
-/**
- * Agrega un mapeo de carácter a símbolo Braille
- * @param character Carácter español
- * @param dots Array de 6 booleanos representando los puntos
- * @param description Descripción del símbolo
- */
-```
-
-### 4.2 SpanishToBrailleTranscriber
-
-```typescript
-/**
- * Implementación del motor de transcripción español a Braille
- * Procesa texto español y lo convierte a su representación Braille
- */
-export class SpanishToBrailleTranscriber implements IBrailleTranscriber
-```
-
-**Responsabilidad**: Procesar texto español y convertirlo a Braille.
-
-#### Constructor
-```typescript
-constructor()
-```
-**Descripción**: Inicializa el transcriptor con un mapeador Braille.
-**Efecto**: Crea instancia de SpanishBrailleMapper.
-
-#### Métodos Principales
-
-##### transcribe(text: string, config?: Partial<TranscriptionConfig>): BrailleOutput
-```typescript
-/**
- * Convierte texto español a Braille
- * @param text Texto en español a transcribir
- * @param config Configuración opcional de transcripción
- * @returns Resultado de la transcripción
- */
-```
-**Parámetros**:
-- `text`: Texto español a transcribir
-- `config`: Configuración opcional (contracciones, formato, etc.)
-**Retorna**: BrailleOutput con el resultado completo
-**Proceso**:
-1. Validar entrada
-2. Tokenizar texto
-3. Procesar tokens
-4. Generar símbolos
-5. Calcular estadísticas
-**Ejemplo**:
-```typescript
-const transcriber = new SpanishToBrailleTranscriber();
-const result = transcriber.transcribe('Hola mundo');
-console.log(result.brailleText); // → representación Braille
-```
-
-##### validateInput(text: string): boolean
-```typescript
-/**
- * Valida caracteres de entrada
- * @param text Texto a validar
- * @returns True si todos los caracteres son válidos
- */
-```
-
-##### getLastStatistics(): TranscriptionStatistics | null
-```typescript
-/**
- * Obtiene estadísticas de la última transcripción
- * @returns Estadísticas del proceso
- */
-```
-
-#### Métodos Privados
-
-##### tokenizeText(text: string): Token[]
-```typescript
-/**
- * Tokeniza el texto de entrada en unidades procesables
- * @param text Texto a tokenizar
- * @returns Array de tokens
- */
-```
-**Descripción**: Divide el texto en tokens individuales con su tipo.
-
-##### getTokenType(character: string): TokenType
-```typescript
-/**
- * Determina el tipo de token para un carácter
- * @param character Carácter a clasificar
- * @returns Tipo de token
- */
-```
-
-##### processTokens(tokens: Token[], config: TranscriptionConfig): Token[]
-```typescript
-/**
- * Procesa los tokens y asigna símbolos Braille
- * @param tokens Tokens a procesar
- * @param config Configuración de transcripción
- * @returns Tokens procesados con símbolos Braille
- */
-```
-**Descripción**: Asigna símbolos Braille a cada token y maneja casos especiales.
-
-##### generateBrailleText(symbols: any[], displayMode: 'dots' | 'binary' | 'unicode'): string
-```typescript
-/**
- * Genera la representación visual del texto Braille
- * @param symbols Símbolos Braille a convertir
- * @param displayMode Modo de visualización
- * @returns String para visualización
- */
-```
-
-## 5. Componentes React
-
-### 5.1 BrailleSymbol
-
-```typescript
-/**
- * Componente para visualizar símbolos Braille (cuadratín)
- */
-export const BrailleSymbol: React.FC<BrailleSymbolProps>
-```
-
-**Responsabilidad**: Renderizar visualmente un símbolo Braille individual.
-
-#### Props
-```typescript
-interface BrailleSymbolProps {
-  /** Array de 6 booleanos representando los puntos [1,2,3,4,5,6] */
-  dots: BrailleDots;
-  
-  /** Tamaño del símbolo */
-  size?: 'sm' | 'md' | 'lg';
-  
-  /** Clases CSS adicionales */
-  className?: string;
-  
-  /** Modo de visualización */
-  displayMode?: 'dots' | 'binary' | 'unicode';
-  
-  /** Si es interactivo (clickable) */
-  interactive?: boolean;
-  
-  /** Callback al hacer click */
-  onClick?: () => void;
+interface BrailleOutput {
+  originalText: string;
+  symbols: BrailleSymbol[];
+  tokens: Token[];
+  brailleText: string;
+  statistics: TranscriptionStatistics;
 }
 ```
 
-#### Renderizado
-- **Modo dots**: Muestra el cuadratín con puntos visuales
-- **Modo binary**: Muestra representación binaria (ej: "100000")
-- **Modo unicode**: Muestra caracteres Unicode Braille
-
-#### Accesibilidad
-- ARIA labels para lectores de pantalla
-- Soporte para navegación con teclado
-- Indicadores visuales de estado
-
-### 5.2 BrailleDisplay
+### 6.7 `TranscriptionConfig`
 
 ```typescript
-/**
- * Componente para mostrar texto Braille transcribido
- */
-export const BrailleDisplay: React.FC<BrailleDisplayProps>
-```
-
-**Responsabilidad**: Mostrar el resultado completo de la transcripción.
-
-#### Props
-```typescript
-interface BrailleDisplayProps {
-  /** Resultado de la transcripción a mostrar */
-  transcriptionResult: BrailleOutput;
-  
-  /** Clases CSS adicionales */
-  className?: string;
-  
-  /** Callback para exportar resultados */
-  onExport?: (format: 'text' | 'json' | 'pdf') => void;
+interface TranscriptionConfig {
+  useContractions: boolean;
+  displayMode: 'dots' | 'binary' | 'unicode';
+  formatting: {
+    preserveCase: boolean;
+    preserveSpaces: boolean;
+    maxLineLength?: number;
+  };
 }
 ```
 
-#### Características
-- Múltiples modos de visualización (grid, lista, texto)
-- Estadísticas de transcripción
-- Opciones de exportación
-- Responsive design
+La propiedad `useContractions` existe como contrato, pero en la versión actual no se observa una implementación funcional de contracciones Braille.
 
-### 5.3 TextInput
+## 7. Lógica central de transcripción
 
-```typescript
-/**
- * Componente para entrada de texto español a transcribir
- */
-export const TextInput: React.FC<TextInputProps>
-```
+## 7.1 `SpanishBrailleMapper`
 
-**Responsabilidad**: Recibir y validar texto de entrada.
+Archivo: `src/lib/braille-mapper.ts`
 
-#### Props
-```typescript
-interface TextInputProps {
-  /** Texto actual del input */
-  value: string;
-  
-  /** Callback cuando cambia el texto */
-  onChange: (value: string) => void;
-  
-  /** Callback para transcribir */
-  onTranscribe: () => void;
-  
-  /** Si está procesando la transcripción */
-  isProcessing?: boolean;
-  
-  /** Errores de validación */
-  errors?: string[];
-  
-  /** Caracteres no soportados */
-  unsupportedCharacters?: string[];
-  
-  /** Clases CSS adicionales */
-  className?: string;
-  
-  /** Placeholder del textarea */
-  placeholder?: string;
-  
-  /** Límite de caracteres */
-  maxLength?: number;
-}
-```
+### Responsabilidad
 
-#### Características
-- Validación en tiempo real
-- Drag & drop de archivos
-- Estadísticas de texto
-- Indicadores de errores
+Mapear caracteres españoles a símbolos Braille y mantener el mapeo inverso desde los puntos hacia el carácter original.
 
-## 6. Utilidades
+### Estructuras internas
 
-### 6.1 cn()
+- `characterMap`: mapa de carácter a símbolo.
+- `dotsMap`: mapa de patrón binario a carácter.
 
-```typescript
-/**
- * Utilidad para combinar clases CSS de forma segura
- * @param inputs Clases CSS a combinar
- * @returns String de clases combinadas
- */
-export function cn(...inputs: ClassValue[]): string
-```
+### Cobertura funcional
 
-**Descripción**: Combina clases CSS usando clsx y tailwind-merge.
-**Uso**: Para evitar conflictos de clases en componentes.
+Incluye:
 
-## 7. Configuración
+- alfabeto español completo en minúsculas y mayúsculas,
+- `ñ` y `Ñ`,
+- vocales acentuadas,
+- `ü` y `Ü`,
+- números del `0` al `9`,
+- puntuación básica,
+- indicadores numérico y de mayúscula.
 
-### 7.1 TypeScript Configuración
-```json
-{
-  "compilerOptions": {
-    "target": "es5",
-    "lib": ["dom", "dom.iterable", "es6"],
-    "allowJs": true,
-    "skipLibCheck": true,
-    "strict": true,
-    "noEmit": true,
-    "esModuleInterop": true,
-    "module": "esnext",
-    "moduleResolution": "bundler",
-    "resolveJsonModule": true,
-    "isolatedModules": true,
-    "jsx": "preserve",
-    "incremental": true,
-    "baseUrl": ".",
-    "paths": {
-      "@/*": ["./src/*"],
-      "@/components/*": ["./src/components/*"],
-      "@/utils/*": ["./src/utils/*"]
-    }
-  }
-}
-```
+### Métodos principales
 
-### 7.2 TailwindCSS Configuración
-```javascript
-module.exports = {
-  content: [
-    './pages/**/*.{js,ts,jsx,tsx,mdx}',
-    './components/**/*.{js,ts,jsx,tsx,mdx}',
-    './app/**/*.{js,ts,jsx,tsx,mdx}',
-  ],
-  theme: {
-    extend: {
-      colors: {
-        // Paleta de colores personalizada
-      },
-      spacing: {
-        // Espaciado personalizado
-      }
-    },
-  },
-  plugins: [
-    require('tailwindcss-animate'),
-  ],
-}
-```
+- `getBrailleSymbol(character)`
+- `hasMapping(character)`
+- `getAllMappedCharacters()`
+- `getNumberIndicator()`
+- `getCapitalIndicator()`
+- `isLetter(character)`
+- `isNumber(character)`
+- `isAccentedVowel(character)`
+- `isPunctuation(character)`
+- `getCharacterFromDots(dots)`
+- `hasDotsMapping(dots)`
 
-## 8. Flujo de Datos
+### Detalle técnico relevante
 
-### 8.1 Diagrama de Flujo
-```
-Usuario ingresa texto
-        ↓
-TextInput component
-        ↓
-handleTranscribe()
-        ↓
-SpanishToBrailleTranscriber.transcribe()
-        ↓
-validateInput()
-        ↓
-tokenizeText()
-        ↓
-processTokens()
-        ↓
-SpanishBrailleMapper.getBrailleSymbol()
-        ↓
-generateBrailleText()
-        ↓
-BrailleDisplay component
-        ↓
-Visualización de resultados
-```
+El mapeo de números usa la convención Braille estándar de los caracteres `a-j` precedidos por un indicador numérico. El indicador numérico y el de mayúscula se agregan como símbolos auxiliares durante la transcripción, no como parte del texto original.
 
-### 8.2 Transformación de Datos
-1. **String** → **Token[]** (tokenización)
-2. **Token[]** → **Token[] con BrailleSymbol** (mapeo)
-3. **Token[]** → **BrailleSymbol[]** (extracción)
-4. **BrailleSymbol[]** → **string** (visualización)
+## 7.2 `SpanishToBrailleTranscriber`
 
-## 9. Manejo de Errores
+Archivo: `src/lib/braille-transcriber.ts`
 
-### 9.1 Tipos de Errores
-- **ValidationError**: Caracteres no soportados
-- **TranscriptionError**: Error en el proceso de transcripción
-- **MappingError**: Error en el mapeo de caracteres
+### Responsabilidad
 
-### 9.2 Estrategia de Manejo
-```typescript
-try {
-  const result = transcriber.transcribe(text);
-  setTranscriptionResult(result);
-} catch (error) {
-  if (error instanceof ValidationError) {
-    setErrors([error.message]);
-    setUnsupportedCharacters(error.unsupportedChars);
-  } else {
-    setErrors(['Error en la transcripción']);
-  }
-}
-```
+Convertir texto español en un objeto `BrailleOutput` completo.
 
-## 10. Performance
+### Secuencia de ejecución
 
-### 10.1 Optimizaciones
-- **Memoization**: Cache de símbolos Braille
-- **Lazy Loading**: Carga bajo demanda de componentes
-- **Virtual Scrolling**: Para textos largos
-- **Debouncing**: Validación de entrada
+1. Calcula tiempo de inicio.
+2. Combina la configuración por defecto con la configuración recibida.
+3. Valida la entrada.
+4. Tokeniza el texto carácter por carácter.
+5. Procesa tokens y agrega indicadores cuando aplica.
+6. Resuelve cada carácter a su símbolo Braille.
+7. Genera la representación visual con `dots`, `binary` o `unicode`.
+8. Calcula estadísticas.
+9. Retorna el resultado final.
 
-### 10.2 Métricas
-- Tiempo de transcripción
-- Memoria utilizada
-- Tamaño del bundle
-- Tiempo de renderizado
+### Métodos clave
 
----
+- `transcribe(text, config?)`
+- `validateInput(text)`
+- `getLastStatistics()`
+- `getUnrecognizedCharacters(text)`
+- `getDetailedStatistics(text)`
 
-Esta documentación técnica proporciona una visión completa del código fuente, facilitando el mantenimiento, extensión y comprensión del sistema Transcriptor Español a Braille.
+### Reglas de procesamiento
+
+#### Números
+
+Cuando aparece el primer número de una secuencia se inserta un indicador numérico. Mientras continúan los dígitos, el transcriptor mantiene el modo numérico.
+
+#### Mayúsculas
+
+Si `preserveCase` está activo, se agrega un indicador de mayúscula antes de cada letra mayúscula o vocal acentuada mayúscula.
+
+#### Puntuación
+
+Los signos de puntuación válidos se conservan y se mapean a su patrón Braille correspondiente.
+
+#### Espacios
+
+Los espacios se tratan como tokens válidos y se preservan en la salida.
+
+### Salida visual
+
+El método interno `generateBrailleText()` produce:
+
+- representación por puntos,
+- representación binaria,
+- representación Unicode.
+
+## 7.3 `BrailleToSpanishTranscriber`
+
+Archivo: `src/lib/braille-to-spanish-transcriber.ts`
+
+### Responsabilidad
+
+Reconstruir texto español a partir de símbolos Braille.
+
+### Entrada soportada
+
+- símbolos Braille como `BrailleDots`,
+- secuencias binarias de 6 bits mediante `transcribeFromBinary()`.
+
+### Reglas principales
+
+- Reconoce indicador numérico y activa modo numérico.
+- Reconoce indicador de mayúscula y capitaliza el siguiente carácter válido.
+- Convierte los patrones de letras `a-j` en dígitos cuando el modo numérico está activo.
+- Valida la entrada binaria con `validateBinaryInput()`.
+
+### Resultado
+
+Devuelve:
+
+- texto Braille original en binario,
+- texto español reconstruido,
+- símbolos procesados,
+- estadísticas de procesamiento.
+
+## 7.4 `UnicodeBrailleConverter`
+
+Archivo: `src/lib/unicode-braille-converter.ts`
+
+### Responsabilidad
+
+Convertir entre Unicode Braille y `BrailleDots`.
+
+### Métodos
+
+- `unicodeToDots(char)`
+- `unicodeTextToDots(text)`
+- `dotsToUnicode(dots)`
+- `isUnicodeBraille(char)`
+- `containsUnicodeBraille(text)`
+
+### Utilidad práctica
+
+Este módulo permite interpretar Braille Unicode pegado desde otras fuentes o generado desde el teclado virtual.
+
+## 8. Componentes de interfaz
+
+## 8.1 `src/app/page.tsx`
+
+La página principal es un componente cliente que concentra el estado del flujo de la aplicación.
+
+### Estado principal
+
+- `conversionMode`
+- `inputMethod`
+- `inputText`
+- `brailleSymbols`
+- `transcriptionResult`
+- `reverseTranscriptionResult`
+- `isProcessing`
+- `errors`
+- `unsupportedCharacters`
+
+### Responsabilidades
+
+- coordinar el modo de conversión,
+- decidir la fuente de entrada,
+- invocar el transcriptor correspondiente,
+- controlar errores,
+- ejecutar exportaciones,
+- distribuir resultados a los componentes visuales.
+
+### Exportación
+
+La página exporta el resultado Braille en tres formatos:
+
+- texto plano,
+- JSON,
+- PDF con `jsPDF`.
+
+### Observación técnica
+
+La exportación PDF dibuja cada celda Braille en un formato visual apto para impresión. Además reubica los símbolos si se supera el espacio disponible de la página.
+
+## 8.2 `TextInput`
+
+Archivo: `src/components/braille/TextInput.tsx`
+
+### Propósito
+
+Gestionar la entrada de texto español a transcribir.
+
+### Funcionalidades
+
+- escritura manual,
+- pegado de texto,
+- carga de archivos `.txt`,
+- validación de longitud máxima,
+- inserción de texto de ejemplo,
+- limpieza del campo,
+- ejecución de transcripción con Enter.
+
+### Comportamiento visual
+
+El componente muestra:
+
+- contadores de palabras y caracteres,
+- alertas de validación,
+- lista de caracteres no soportados,
+- acciones rápidas para limpiar el contenido.
+
+## 8.3 `BrailleDisplay`
+
+Archivo: `src/components/braille/BrailleDisplay.tsx`
+
+### Propósito
+
+Visualizar el resultado de la transcripción Braille.
+
+### Modos de vista
+
+- `grid`: cuadrícula de celdas Braille.
+- `list`: vista horizontal compacta.
+- texto plano: representación textual del Braille.
+
+### Controles locales
+
+- modo de visualización,
+- vista grid/list,
+- panel de configuración,
+- modo espejo para impresión.
+
+### Funcionalidad de impresión
+
+Genera una ventana aparte con HTML y CSS embebidos para imprimir la transcripción. El modo espejo invierte la disposición de puntos para facilitar el punzonado por el reverso.
+
+### Estadísticas visibles
+
+- caracteres totales,
+- símbolos Braille,
+- caracteres no reconocidos,
+- tiempo de procesamiento.
+
+## 8.4 `BrailleVirtualKeyboard`
+
+Archivo: `src/components/braille/BrailleVirtualKeyboard.tsx`
+
+### Propósito
+
+Permitir la creación manual de celdas Braille activando puntos en una rejilla 2x3.
+
+### Funcionalidades
+
+- alternar puntos individuales,
+- ver previsualización Unicode,
+- agregar símbolo,
+- borrar el último símbolo,
+- limpiar todo.
+
+### Integración
+
+Usa `UnicodeBrailleConverter.dotsToUnicode()` para representar la celda activa y emitir tanto la estructura `BrailleDots` como el carácter Unicode correspondiente.
+
+## 8.5 `BrailleSymbol`
+
+Archivo: `src/components/braille/BrailleSymbol.tsx`
+
+### Propósito
+
+Renderizar un símbolo Braille individual.
+
+### Modos de renderizado
+
+- `dots`: celdas Braille visuales.
+- `binary`: cadena de seis bits.
+- `unicode`: marcador Unicode Braille.
+
+### Características
+
+- tamaños `sm`, `md`, `lg`,
+- interacción opcional con teclado y clic,
+- descripción accesible mediante `aria-label`,
+- soporte visual para lectura rápida de patrones.
+
+## 8.6 `Header`
+
+Archivo: `src/components/Header.tsx`
+
+### Propósito
+
+Navegación principal del sitio.
+
+### Comportamiento actual
+
+- barra fija superior,
+- navegación responsive,
+- menú móvil,
+- alternancia visual de modo oscuro,
+- botón de acción principal.
+
+### Observación técnica
+
+El cambio de modo oscuro se aplica agregando o removiendo la clase `dark` sobre `document.documentElement`.
+
+## 8.7 `Hero`
+
+Archivo: `src/components/Hero.tsx`
+
+### Propósito
+
+Presentar la propuesta principal del sitio con una sección de bienvenida, llamados a la acción y métricas visuales.
+
+### Elementos incluidos
+
+- título principal,
+- descripción general,
+- botones de acción,
+- tarjetas con métricas de diseño, rendimiento y accesibilidad.
+
+## 8.8 `Features`
+
+Archivo: `src/components/Features.tsx`
+
+### Propósito
+
+Mostrar una sección de características generales del proyecto.
+
+### Contenido
+
+- rendimiento,
+- seguridad,
+- diseño responsive,
+- SEO,
+- código limpio,
+- UX centrada.
+
+## 8.9 `Footer`
+
+Archivo: `src/components/Footer.tsx`
+
+### Propósito
+
+Proveer información de contacto, enlaces rápidos y pie legal.
+
+### Componentes visibles
+
+- información institucional,
+- enlaces rápidos,
+- datos de contacto,
+- enlaces sociales,
+- políticas y términos.
+
+## 8.10 `Button`
+
+Archivo: `src/components/ui/Button.tsx`
+
+### Propósito
+
+Componente base reutilizable para botones.
+
+### Características
+
+- variantes visuales con `cva`,
+- tamaños configurables,
+- soporte para `asChild`,
+- foco accesible,
+- compatibilidad con composición usando `Slot`.
+
+## 9. Función utilitaria
+
+### `cn()`
+
+Archivo: `src/utils/cn.ts`
+
+Combina clases CSS y resuelve conflictos de Tailwind utilizando `clsx` y `tailwind-merge`.
+
+Uso principal:
+
+- composición dinámica de estilos,
+- resolución de conflictos entre clases,
+- simplificación de clases condicionales en componentes.
+
+## 10. Flujo funcional de la aplicación
+
+### 10.1 Conversión de español a Braille
+
+1. El usuario escribe o carga texto.
+2. `TextInput` valida el contenido.
+3. La página principal invoca `SpanishToBrailleTranscriber`.
+4. El texto se tokeniza.
+5. Se insertan indicadores cuando aplica.
+6. El mapeador resuelve símbolos Braille.
+7. `BrailleDisplay` muestra el resultado.
+8. El usuario puede exportar la salida.
+
+### 10.2 Conversión de Braille a español
+
+1. El usuario cambia el modo de conversión.
+2. Ingresa Braille binario, Unicode o usa el teclado virtual.
+3. La app normaliza la entrada a `BrailleDots`.
+4. `BrailleToSpanishTranscriber` reconstruye el texto.
+5. Se presentan estadísticas y salida final.
+
+## 11. Pruebas
+
+### 11.1 Herramientas
+
+- `jest`
+- `@testing-library/react`
+- `@testing-library/jest-dom`
+- `jest-environment-jsdom`
+
+### 11.2 Cobertura existente
+
+El archivo `tests/braille-transcriber.test.ts` cubre:
+
+- transcripción básica,
+- números,
+- vocales acentuadas,
+- mayúsculas,
+- espacios,
+- puntuación,
+- caracteres especiales del español,
+- validación de entrada,
+- estadísticas,
+- casos límite y de rendimiento.
+
+### 11.3 Recomendaciones de cobertura futura
+
+- pruebas para `BrailleToSpanishTranscriber`,
+- pruebas para `UnicodeBrailleConverter`,
+- pruebas de renderizado de componentes Braille,
+- pruebas de exportación PDF y JSON,
+- pruebas de navegación responsive.
+
+## 12. Evolución respecto a la primera versión
+
+La primera versión del documento se centraba principalmente en tipos, transcriptor y mapeador. La segunda versión del programa amplía el alcance con:
+
+- conversión inversa de Braille a español,
+- soporte para Unicode Braille,
+- teclado Braille virtual,
+- exportación a TXT, JSON y PDF,
+- renderizado más rico de los símbolos,
+- componentes de presentación más completos,
+- pruebas automatizadas más amplias.
+
+Además, algunas ideas del contrato original siguen presentes pero no completamente implementadas, como el soporte real de contracciones Braille.
+
+## 13. Limitaciones actuales
+
+### 13.1 Contracciones Braille
+
+El contrato lo contempla, pero la lógica visible no aplica contracciones de forma operativa.
+
+### 13.2 Persistencia de preferencias
+
+No se observa persistencia de preferencias de usuario para el modo oscuro o configuraciones de vista.
+
+### 13.3 Escalabilidad lingüística
+
+El sistema está diseñado para un conjunto delimitado de caracteres y reglas. Si se amplía a otros idiomas o abreviaciones, será necesario extender el mapeo y las reglas de tokenización.
+
+## 14. Recomendaciones técnicas
+
+
+## 15. Estrategia de ramificación
+
+La segunda versión conserva la estrategia de ramificación definida en la primera versión, porque sigue siendo la forma más estable de organizar el trabajo del equipo y mantener separada la documentación, la integración y las features funcionales.
+
+### 15.1 Ramas principales del repositorio remoto
+
+- `origin/main`:
+  - rama estable principal del proyecto.
+- `origin/develop`:
+  - rama base de integración continua para el trabajo en progreso.
+- `origin/documentacion`:
+  - rama reservada para artefactos de documentación, manuales y especificaciones.
+
+### 15.2 Ramas feature observadas en la segunda versión
+
+- `origin/feature/marlon-entrada-braille`
+  - asociada a la entrada principal y la composición de la interfaz.
+- `origin/feature/martin-layout-principal`
+  - enfocada en la estructura y layout principal.
+- `origin/feature/andres-mapeo-braille`
+  - orientada al mapeo y lógica Braille.
+- `origin/feature/carlos-reglas-transcripcion`
+  - enfocada en reglas y comportamiento de transcripción.
+- `origin/feature/antony-resultados-exportacion`
+  - asociada a visualización de resultados y exportación.
+- `origin/incremento-branch`
+  - rama auxiliar usada como incremento o consolidación temporal del trabajo.
+
+### 15.3 Estrategia heredada de la primera versión
+
+La documentación de la primera versión definía una estrategia basada en:
+
+- `main` como rama estable,
+- `develop` como rama de integración,
+- `documentacion` como rama dedicada a artefactos documentales,
+- ramas `feature/*` para trabajo aislado por funcionalidad o integrante.
+
+Esa estrategia se mantiene en esta segunda versión porque facilita:
+
+- aislar cambios de lógica Braille,
+- separar trabajo de interfaz y documentación,
+- reducir conflictos entre desarrolladores,
+- validar cada incremento antes de integrar a `develop`,
+- preservar una ruta clara de promoción hacia `main`.
+
+### 15.4 Reglas de trabajo recomendadas
+
+- Trabajar siempre desde `develop` para iniciar una nueva tarea.
+- Crear una rama `feature/*` por cada cambio funcional o documental significativo.
+- Mantener `documentacion` como rama exclusiva para archivos de documentación y artefactos de apoyo.
+- Integrar primero los cambios de lógica y luego los de interfaz y exportación.
+- Validar con pruebas y lint antes de fusionar a `develop` o `main`.
+
+
+La segunda versión del proyecto consolida una solución frontend modular, con separación clara entre interfaz, lógica de conversión y contratos de datos. El resultado es una base sólida para uso académico y para futuras ampliaciones del sistema de transcripción Braille.

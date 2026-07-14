@@ -1,487 +1,288 @@
 # Documentación del Ambiente de Desarrollo
 
-## 1. Herramientas Seleccionadas
+#### **Asignatura:** Construcción y Evolución de Software
 
-### 1.1 Stack Tecnológico Principal
-- **Framework**: Next.js 14 (App Router)
-- **Lenguaje**: TypeScript 5.4+
-- **Estilos**: TailwindCSS 3.4+
-- **Build Tool**: Next.js (integrado)
-- **Package Manager**: npm 9+
+#### **Proyecto:** Sistema Transcriptor de Texto a Braille
 
-### 1.2 Herramientas de Desarrollo
-- **IDE**: Visual Studio Code
-- **Version Control**: Git + GitHub
-- **Testing**: Jest + React Testing Library
-- **Linting**: ESLint + Prettier
-- **Type Checking**: TypeScript Compiler
+#### **Versión:** Segunda versión del programa
 
-### 1.3 Extensiones de VS Code Recomendadas
-```json
-{
-  "recommendations": [
-    "bradlc.vscode-tailwindcss",
-    "esbenp.prettier-vscode",
-    "dbaeumer.vscode-eslint",
-    "ms-vscode.vscode-typescript-next",
-    "formulahendry.auto-rename-tag",
-    "christian-kohler.path-intellisense",
-    "ms-vscode.vscode-json",
-    "github.copilot",
-    "ms-vscode.test-adapter-converter",
-    "humao.rest-client"
-  ]
-}
-```
+#### **Ubicación del documento:** Carpeta `Dumentacion/`
 
-## 2. Configuración del Entorno
+---
 
-### 2.1 Requisitos del Sistema
-- **Node.js**: 18.17+ (recomendado 20.x)
-- **npm**: 9.0+ (incluido con Node.js)
-- **Git**: 2.30+
-- **Sistema Operativo**: Windows 10+, macOS 10.15+, Ubuntu 18.04+
+## 1. Introducción
 
-### 2.2 Instalación de Node.js
+Este documento describe el ambiente de desarrollo de la segunda versión del proyecto `ces_proyecto_braille`, un sistema web para la transcripción de texto español a Braille y la conversión inversa desde Braille a español. La aplicación mantiene una arquitectura frontend basada en Next.js y amplía la primera versión con soporte para Unicode Braille, teclado virtual, exportación de resultados y una capa de visualización más completa.
+
+La finalidad de esta documentación es servir como referencia técnica para configurar el entorno, conocer las herramientas utilizadas, entender la estructura del repositorio y seguir el flujo de trabajo del equipo.
+
+## 2. Ecosistema de Desarrollo
+
+### 2.1 Lenguaje y plataforma
+
+- **Lenguaje principal**: TypeScript 5.4
+- **Plataforma de ejecución**: Node.js 18.17 o superior
+- **Framework web**: Next.js 14 con App Router
+- **Librería de interfaz**: React 18.3
+- **Sistema de estilos**: Tailwind CSS 3.4
+
+### 2.2 Herramientas de construcción y ejecución
+
+- **Gestor de paquetes**: npm
+- **Servidor de desarrollo**: Next.js (`npm run dev`)
+- **Compilación de producción**: Next.js (`npm run build`)
+- **Ejecución en producción**: Next.js (`npm run start`)
+- **Linter**: ESLint (`npm run lint`)
+- **Suite de pruebas**: Jest (`npm test`)
+
+### 2.3 Dependencias principales
+
+#### Producción
+
+- `next` — framework principal de la aplicación.
+- `react` — biblioteca base de componentes.
+- `react-dom` — renderizado de React en el DOM.
+- `jspdf` — generación de exportaciones PDF.
+- `lucide-react` — biblioteca de íconos.
+- `@radix-ui/react-slot` — composición accesible de componentes.
+- `class-variance-authority` — definición de variantes visuales.
+- `clsx` — combinación condicional de clases CSS.
+- `tailwind-merge` — fusión inteligente de clases Tailwind.
+- `tailwindcss-animate` — utilidades de animación para Tailwind.
+
+#### Desarrollo
+
+- `typescript` — verificación estática del código.
+- `eslint` — análisis de estilo y calidad.
+- `eslint-config-next` — reglas recomendadas para Next.js.
+- `jest` — pruebas unitarias y de integración ligera.
+- `babel-jest` — soporte de transformación para Jest.
+- `@testing-library/react` — pruebas de componentes React.
+- `@testing-library/jest-dom` — aserciones extendidas para DOM.
+- `@types/node` — tipos para Node.js.
+- `@types/react` — tipos para React.
+- `@types/react-dom` — tipos para React DOM.
+- `@types/jest` — tipos para Jest.
+- `autoprefixer` — compatibilidad CSS cruzada.
+- `postcss` — procesamiento de hojas de estilo.
+
+### 2.4 Configuración de TypeScript
+
+Archivos clave:
+
+- `tsconfig.json`
+- `next-env.d.ts`
+
+Configuración relevante:
+
+- `strict: true` — comprobación estricta de tipos.
+- `noEmit: true` — no generar salida en la verificación de tipos.
+- `moduleResolution: bundler` — resolución compatible con bundlers modernos.
+- `jsx: preserve` — preserva JSX para Next.js.
+- `baseUrl: .` — base de resolución en el raíz del proyecto.
+
+Alias configurados:
+
+- `@/*` → `./src/*`
+- `@/components/*` → `./src/components/*`
+- `@/utils/*` → `./src/utils/*`
+
+### 2.5 Configuración de pruebas
+
+Jest está configurado con `next/jest` y utiliza `jest-environment-jsdom` para pruebas de componentes.
+
+Archivos relevantes:
+
+- `jest.config.js`
+- `jest.setup.js`
+- `tests/braille-transcriber.test.ts`
+
+## 3. Requisitos del Entorno
+
+### 3.1 Requisitos mínimos
+
+- **Sistema operativo**: Windows, macOS o Linux
+- **Node.js**: 18.17 o superior, recomendado 20.x LTS
+- **npm**: 9 o superior
+- **Git**: instalado y configurado
+- **Editor recomendado**: Visual Studio Code
+
+### 3.2 Verificación rápida
+
+Antes de trabajar en el proyecto, confirma la versión de las herramientas:
+
 ```bash
-# Usando nvm (recomendado)
-nvm install 20
-nvm use 20
-nvm alias default 20
-
-# Verificar instalación
 node --version
 npm --version
-```
-
-### 2.3 Configuración de Git
-```bash
-# Configuración global
-git config --global user.name "Tu Nombre"
-git config --global user.email "tu.email@ejemplo.com"
-
-# Configuración para el proyecto
-git config core.autocrlf input  # Linux/Mac
-git config core.autocrlf true   # Windows
-```
-
-## 3. Flujo de Trabajo
-
-### 3.1 Estructura de Directorios
-```
-Proyecto-Primer-Bimestre/
-├── src/                          # Código fuente
-│   ├── app/                      # App Router Next.js
-│   ├── components/               # Componentes React
-│   │   ├── braille/             # Componentes Braille
-│   │   └── ui/                  # Componentes UI base
-│   ├── lib/                     # Lógica de negocio
-│   ├── types/                   # Definiciones TypeScript
-│   └── utils/                   # Utilidades
-├── docs/                        # Documentación
-├── tests/                       # Pruebas
-├── public/                      # Assets estáticos
-└── 配置文件/                    # Archivos de configuración
-```
-
-### 3.2 Comandos de Desarrollo
-```bash
-# Instalar dependencias
-npm install
-
-# Iniciar servidor de desarrollo
-npm run dev
-
-# Build para producción
-npm run build
-
-# Iniciar servidor de producción
-npm run start
-
-# Ejecutar tests
-npm test
-
-# Linting del código
-npm run lint
-
-# Formatear código
-npm run format
-
-# Type checking
-npm run type-check
-```
-
-### 3.3 Flujo de Trabajo Diario
-
-#### 3.3.1 Inicio del Día
-```bash
-# 1. Actualizar rama principal
-git checkout develop
-git pull origin develop
-
-# 2. Crear nueva rama de trabajo
-git checkout -b feature/nueva-caracteristica
-
-# 3. Iniciar servidor de desarrollo
-npm run dev
-```
-
-#### 3.3.2 Durante el Desarrollo
-```bash
-# Commits frecuentes y descriptivos
-git add .
-git commit -m "feat(component): agregar nuevo componente"
-
-# Push periódico para backup
-git push origin feature/nueva-caracteristica
-
-# Ejecutar tests regularmente
-npm test
-```
-
-#### 3.3.3 Fin del Día
-```bash
-# Commit final del día
-git add .
-git commit -m "wip: progreso en característica X"
-git push origin feature/nueva-caracteristica
-
-# Crear Pull Request si está listo
-# (via GitHub interface)
+git --version
 ```
 
 ## 4. Configuración del Proyecto
 
-### 4.1 package.json Scripts
-```json
-{
-  "scripts": {
-    "dev": "next dev",
-    "build": "next build",
-    "start": "next start",
-    "lint": "next lint",
-    "lint:fix": "next lint --fix",
-    "format": "prettier --write .",
-    "format:check": "prettier --check .",
-    "type-check": "tsc --noEmit",
-    "test": "jest",
-    "test:watch": "jest --watch",
-    "test:coverage": "jest --coverage",
-    "prepare": "husky install"
-  }
-}
-```
+### 4.1 Dependencias instaladas
 
-### 4.2 Configuración de ESLint
-```json
-// .eslintrc.json
-{
-  "extends": [
-    "next/core-web-vitals",
-    "@typescript-eslint/recommended",
-    "prettier"
-  ],
-  "rules": {
-    "@typescript-eslint/no-unused-vars": "error",
-    "@typescript-eslint/explicit-function-return-type": "warn",
-    "prefer-const": "error",
-    "no-var": "error"
-  }
-}
-```
+Las dependencias del proyecto están definidas en `package.json`.
 
-### 4.3 Configuración de Prettier
-```json
-// .prettierrc
-{
-  "semi": true,
-  "trailingComma": "es5",
-  "singleQuote": true,
-  "printWidth": 80,
-  "tabWidth": 2,
-  "useTabs": false
-}
-```
+### 4.2 Archivos de configuración principales
 
-### 4.4 Configuración de Husky (Git Hooks)
-```json
-// package.json
-{
-  "husky": {
-    "hooks": {
-      "pre-commit": "lint-staged",
-      "commit-msg": "commitlint -E HUSKY_GIT_PARAMS"
-    }
-  },
-  "lint-staged": {
-    "*.{js,jsx,ts,tsx}": [
-      "eslint --fix",
-      "prettier --write"
-    ],
-    "*.{json,css,md}": [
-      "prettier --write"
-    ]
-  }
-}
-```
+- `next.config.js`
+- `postcss.config.js`
+- `tailwind.config.js`
+- `tsconfig.json`
+- `jest.config.js`
+- `jest.setup.js`
 
-## 5. Testing
+### 4.3 Entorno de ejecución esperado
 
-### 5.1 Configuración de Jest
-```javascript
-// jest.config.js
-const nextJest = require('next/jest')
+- El proyecto se ejecuta como una aplicación frontend de Next.js.
+- No requiere un backend propio para funcionar.
+- El procesamiento de Braille ocurre en el navegador.
+- La carpeta `.next/` se genera automáticamente durante desarrollo o compilación y no debe editarse manualmente.
 
-const createJestConfig = nextJest({
-  dir: './',
-})
+## 5. Estructura del Proyecto
 
-const customJestConfig = {
-  setupFilesAfterEnv: ['<rootDir>/jest.setup.js'],
-  moduleNameMapping: {
-    '^@/(.*)$': '<rootDir>/src/$1',
-  },
-  testEnvironment: 'jest-environment-jsdom',
-  collectCoverageFrom: [
-    'src/**/*.{js,jsx,ts,tsx}',
-    '!src/**/*.d.ts',
-    '!src/app/layout.tsx',
-  ],
-}
+El proyecto utiliza la convención del App Router de Next.js y una arquitectura basada en carpetas para separar responsabilidades.
 
-module.exports = createJestConfig(customJestConfig)
-```
+### 5.1 Carpetas principales dentro de `src/`
 
-### 5.2 Estructura de Tests
-```
-tests/
-├── unit/                    # Tests unitarios
-│   ├── components/
-│   ├── lib/
-│   └── utils/
-├── integration/             # Tests de integración
-├── e2e/                    # Tests end-to-end
-└── fixtures/               # Datos de prueba
-```
+- `src/app/`
+	- `layout.tsx` — layout global de la aplicación.
+	- `page.tsx` — página principal del transcriptor.
+	- `globals.css` — estilos globales.
+- `src/components/`
+	- `Header.tsx` — cabecera y navegación.
+	- `Hero.tsx` — sección principal de bienvenida.
+	- `Features.tsx` — bloque de características.
+	- `Footer.tsx` — pie de página.
+	- `braille/` — componentes específicos del dominio Braille.
+	- `ui/` — componentes de interfaz reutilizables.
+- `src/lib/`
+	- `braille-mapper.ts` — mapeo de caracteres españoles a Braille.
+	- `braille-transcriber.ts` — transcripción de español a Braille.
+	- `braille-to-spanish-transcriber.ts` — transcripción inversa de Braille a español.
+	- `unicode-braille-converter.ts` — conversión entre Unicode Braille y puntos.
+- `src/types/`
+	- Definiciones de tipos y contratos de Braille.
+- `src/utils/`
+	- Utilidades generales, como `cn` para concatenación de clases.
 
-### 5.3 Comandos de Testing
+### 5.2 Archivos relevantes fuera de `src/`
+
+- `tests/` — pruebas automatizadas del motor de transcripción.
+- `Dumentacion/` — documentación técnica, de ambiente y otros artefactos del proyecto.
+
+## 6. Componentes y responsabilidades técnicas
+
+### 6.1 Dominio Braille
+
+- `src/lib/braille-mapper.ts` — mapeo de caracteres a símbolos Braille.
+- `src/lib/braille-transcriber.ts` — motor de transcripción español -> Braille.
+- `src/lib/braille-to-spanish-transcriber.ts` — motor de transcripción Braille -> español.
+- `src/lib/unicode-braille-converter.ts` — conversión Unicode Braille <-> puntos.
+- `src/types/braille.ts` — modelos, contratos y estadísticas del dominio.
+
+### 6.2 Entrada y visualización
+
+- `src/components/braille/TextInput.tsx` — entrada de texto, validación y carga de archivos.
+- `src/components/braille/BrailleDisplay.tsx` — visualización de resultados, modos de vista y exportación.
+- `src/components/braille/BrailleSymbol.tsx` — renderizado individual de un cuadratín Braille.
+- `src/components/braille/BrailleVirtualKeyboard.tsx` — teclado Braille virtual para construir celdas manualmente.
+
+### 6.3 Componentes de UI general
+
+- `src/components/Header.tsx` — navegación y barra superior.
+- `src/components/Footer.tsx` — contacto, enlaces y pie legal.
+- `src/components/Hero.tsx` — presentación inicial del sitio.
+- `src/components/Features.tsx` — listado visual de características.
+- `src/components/ui/Button.tsx` — botón reutilizable con variantes.
+
+## 7. Comandos de uso
+
+### 7.1 Instalación
+
 ```bash
-# Ejecutar todos los tests
-npm test
-
-# Ejecutar tests en modo watch
-npm run test:watch
-
-# Generar reporte de cobertura
-npm run test:coverage
-
-# Ejecutar tests específicos
-npm test -- --testNamePattern="BrailleTranscriber"
-
-# Ejecutar tests de un archivo
-npm test -- tests/unit/lib/braille-transcriber.test.ts
-```
-
-## 6. Debugging
-
-### 6.1 Debugging en VS Code
-```json
-// .vscode/launch.json
-{
-  "version": "0.2.0",
-  "configurations": [
-    {
-      "name": "Debug Next.js",
-      "type": "node",
-      "request": "launch",
-      "program": "${workspaceFolder}/node_modules/.bin/next",
-      "args": ["dev"],
-      "cwd": "${workspaceFolder}",
-      "console": "integratedTerminal",
-      "internalConsoleOptions": "neverOpen"
-    },
-    {
-      "name": "Debug Tests",
-      "type": "node",
-      "request": "launch",
-      "program": "${workspaceFolder}/node_modules/.bin/jest",
-      "args": ["--runInBand"],
-      "cwd": "${workspaceFolder}",
-      "console": "integratedTerminal"
-    }
-  ]
-}
-```
-
-### 6.2 Debugging en Browser
-```javascript
-// Para debugging de componentes
-console.log('Debug:', { variable });
-
-// Para debugging de transcripción
-if (process.env.NODE_ENV === 'development') {
-  console.log('Transcription result:', result);
-}
-```
-
-## 7. Optimización del Desarrollo
-
-### 7.1 Configuración de VS Code
-```json
-// .vscode/settings.json
-{
-  "typescript.preferences.importModuleSpecifier": "relative",
-  "editor.formatOnSave": true,
-  "editor.defaultFormatter": "esbenp.prettier-vscode",
-  "editor.codeActionsOnSave": {
-    "source.fixAll.eslint": true,
-    "source.organizeImports": true
-  },
-  "emmet.includeLanguages": {
-    "typescript": "html",
-    "typescriptreact": "html"
-  }
-}
-```
-
-### 7.2 Atajos de Teclado Útiles
-- `Ctrl+Shift+P`: Command Palette
-- `Ctrl+P`: Quick Open
-- `Ctrl+Shift+K`: Delete line
-- `Alt+↑/↓`: Move line up/down
-- `Ctrl+D`: Select next occurrence
-- `Ctrl+Shift+L`: Select all occurrences
-
-### 7.3 Snippets Personalizados
-```json
-// .vscode/snippets.code-snippets
-{
-  "React Component": {
-    "prefix": "rfc",
-    "body": [
-      "import React from 'react';",
-      "",
-      "interface ${1:ComponentName}Props {",
-      "  ${2:// props}",
-      "}",
-      "",
-      "export const ${1:ComponentName}: React.FC<${1:ComponentName}Props> = ({",
-      "  ${3:// props}",
-      "}) => {",
-      "  return (",
-      "    <div>",
-      "      ${4:// component content}",
-      "    </div>",
-      "  );",
-      "};",
-      "",
-      "export default ${1:ComponentName};"
-    ]
-  }
-}
-```
-
-## 8. Performance del Desarrollo
-
-### 8.1 Optimización del Servidor de Desarrollo
-```javascript
-// next.config.js
-module.exports = {
-  experimental: {
-    serverComponentsExternalPackages: ['@prisma/client'],
-  },
-  compiler: {
-    removeConsole: process.env.NODE_ENV === 'production',
-  },
-  swcMinify: true,
-}
-```
-
-### 8.2 Cache de Dependencias
-```bash
-# Limpiar cache si hay problemas
-npm cache clean --force
-
-# Usar cache de Docker para builds más rápidos
-docker build --cache-from myapp:latest -t myapp:latest .
-```
-
-### 8.3 Optimización de Tests
-```javascript
-// jest.setup.js
-import '@testing-library/jest-dom';
-
-// Mock de APIs globales
-Object.defineProperty(window, 'matchMedia', {
-  writable: true,
-  value: jest.fn().mockImplementation(query => ({
-    matches: false,
-    media: query,
-    onchange: null,
-    addListener: jest.fn(),
-    removeListener: jest.fn(),
-    addEventListener: jest.fn(),
-    removeEventListener: jest.fn(),
-    dispatchEvent: jest.fn(),
-  })),
-});
-```
-
-## 9. Troubleshooting Común
-
-### 9.1 Problemas Frecuentes
-
-#### 9.1.1 Error de Dependencias
-```bash
-# Limpiar e instalar
-rm -rf node_modules package-lock.json
 npm install
 ```
 
-#### 9.1.2 Error de TypeScript
-```bash
-# Limpiar cache de TypeScript
-npx tsc --build --clean
+### 7.2 Desarrollo
 
-# Verificar configuración
-npx tsc --showConfig
+```bash
+npm run dev
 ```
 
-#### 9.1.3 Error de ESLint
-```bash
-# Resetear configuración
-npx eslint --init
+La aplicación se ejecuta por defecto en:
 
-# Verificar configuración
-npx eslint --print-config src/app/page.tsx
+```bash
+http://localhost:3000
 ```
 
-### 9.2 Recursos de Ayuda
-- **Next.js Docs**: https://nextjs.org/docs
-- **TypeScript Docs**: https://www.typescriptlang.org/docs
-- **TailwindCSS Docs**: https://tailwindcss.com/docs
-- **Stack Overflow**: https://stackoverflow.com/questions/tagged/next.js
+### 7.3 Construcción y ejecución
 
-## 10. Buenas Prácticas
+```bash
+npm run build
+npm run start
+```
 
-### 10.1 Código Limpio
-- Componentes pequeños y enfocados
-- Nombres descriptivos
-- Comentarios donde sea necesario
-- Tipado estricto en TypeScript
+### 7.4 Pruebas
 
-### 10.2 Git Higiene
-- Commits atómicos
-- Mensajes descriptivos
-- Branches de vida corta
-- Pull requests bien descritos
+```bash
+npm test
+npm run test:watch
+```
 
-### 10.3 Testing
-- Tests para cada nueva característica
-- Cobertura mínima del 80%
-- Tests descriptivos y mantenibles
-- Mocks para dependencias externas
+### 7.5 Lint
 
----
+```bash
+npm run lint
+```
 
-Este ambiente de desarrollo está optimizado para productividad, calidad de código y colaboración efectiva en el proyecto Transcriptor Español a Braille.
+## 8. Flujo de trabajo del equipo
+
+### 8.1 Estrategia de ramificación
+
+El equipo trabaja con ramas separadas para estabilizar la integración y evitar conflictos entre módulos.
+
+- `main`:
+	- contiene la versión estable del proyecto.
+- `develop`:
+	- rama de integración continua.
+- `documentacion`:
+	- rama dedicada a documentación y artefactos de apoyo.
+- `feature/*`:
+	- ramas específicas por funcionalidad o responsable.
+
+### 8.2 Reparto de trabajo observado en la primera versión
+
+- **Marlon Chimarro** — interfaz principal.
+- **Kevin Palacios** — motor de transcripción Braille.
+- **Martin Davalos** — entrada de texto.
+- **Carlos Troya** — visualización Braille.
+- **Antony Cobos** — navegación y componentes UI.
+
+Para la segunda versión, este esquema sigue siendo útil como referencia de organización, aunque el proyecto ya integra nuevas capacidades como conversión inversa, teclado virtual y exportación.
+
+### 8.3 Reglas de integración recomendadas
+
+- Trabajar siempre desde `develop`.
+- Crear ramas `feature/*` para cambios acotados.
+- Usar commits descriptivos y semánticos.
+- Validar con `npm run lint` y `npm test` antes de integrar cambios.
+
+## 9. Observaciones del entorno actual
+
+- La carpeta de documentación usada por el proyecto es `Dumentacion/`.
+- El código fuente está organizado bajo `src/` con estructura compatible con Next.js App Router.
+- La solución actual está orientada a accesibilidad, transcripción Braille y presentación visual responsiva.
+- El repositorio incluye una carpeta `.next/` generada por compilaciones previas; no debe editarse manualmente.
+
+## 10. Recomendaciones para desarrollo
+
+- Mantener Node.js en una versión LTS para evitar diferencias entre máquinas.
+- Ejecutar pruebas antes de cada entrega para validar la lógica de transcripción y la conversión inversa.
+- Mantener el uso de alias de TypeScript para evitar rutas relativas largas.
+- No modificar manualmente los archivos generados por Next.js.
+- Documentar cualquier cambio en mapeos Braille, exportación o entrada virtual en la carpeta de documentación.
+
+## 11. Resumen
+
+El entorno del proyecto está basado en **Next.js + React + TypeScript + Tailwind CSS**, con pruebas en **Jest** y una estructura preparada para desarrollo modular. En esta segunda versión se incorporan también conversión Braille -> español, soporte Unicode Braille, teclado virtual y exportaciones, por lo que la documentación de ambiente sirve como guía para instalar, ejecutar y mantener una solución más completa que la versión inicial.
