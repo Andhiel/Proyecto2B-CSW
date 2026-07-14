@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Menu, X, Moon, Sun } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
 
@@ -15,18 +15,23 @@ export default function Header() {
     { name: 'Contacto', href: '#contact' },
   ]
 
+  useEffect(() => {
+    setIsDarkMode(document.documentElement.classList.contains('dark'))
+  }, [])
+
   const toggleDarkMode = () => {
-    setIsDarkMode(!isDarkMode)
-    document.documentElement.classList.toggle('dark')
+    const nextDarkMode = !isDarkMode
+    setIsDarkMode(nextDarkMode)
+    document.documentElement.classList.toggle('dark', nextDarkMode)
   }
 
   return (
-    <header className="fixed top-0 w-full bg-white/80 backdrop-blur-md z-50 border-b border-gray-200">
+    <header className="fixed top-0 w-full bg-white/80 dark:bg-card/90 backdrop-blur-md z-50 border-b border-gray-200 dark:border-border">
       <nav className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
           {/* Logo */}
           <div className="flex-shrink-0">
-            <h1 className="text-2xl font-bold text-gray-900">
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-foreground">
               Proyecto Web
             </h1>
           </div>
@@ -38,7 +43,7 @@ export default function Header() {
                 <a
                   key={item.name}
                   href={item.href}
-                  className="text-gray-700 hover:text-gray-900 px-3 py-2 rounded-md text-sm font-medium transition-colors"
+                  className="text-gray-700 dark:text-muted-foreground hover:text-gray-900 dark:hover:text-foreground px-3 py-2 rounded-md text-sm font-medium transition-colors"
                 >
                   {item.name}
                 </a>
@@ -53,6 +58,7 @@ export default function Header() {
               size="sm"
               onClick={toggleDarkMode}
               className="p-2"
+              aria-label={isDarkMode ? 'Activar modo claro' : 'Activar modo oscuro'}
             >
               {isDarkMode ? (
                 <Sun className="h-5 w-5" />
@@ -81,19 +87,19 @@ export default function Header() {
 
         {/* Mobile Navigation */}
         {isMenuOpen && (
-          <div className="md:hidden">
+          <div className="md:hidden bg-white dark:bg-card border-t border-gray-200 dark:border-border">
             <div className="px-2 pt-2 pb-3 space-y-1 sm:px-3">
               {navigation.map((item) => (
                 <a
                   key={item.name}
                   href={item.href}
-                  className="text-gray-700 hover:text-gray-900 block px-3 py-2 rounded-md text-base font-medium"
+                  className="text-gray-700 dark:text-muted-foreground hover:text-gray-900 dark:hover:text-foreground block px-3 py-2 rounded-md text-base font-medium"
                   onClick={() => setIsMenuOpen(false)}
                 >
                   {item.name}
                 </a>
               ))}
-              <div className="pt-4 pb-3 border-t border-gray-200">
+              <div className="pt-4 pb-3 border-t border-gray-200 dark:border-border">
                 <Button
                   variant="ghost"
                   size="sm"

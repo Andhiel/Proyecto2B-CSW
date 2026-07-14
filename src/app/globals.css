@@ -27,11 +27,11 @@
   }
 
   .dark {
-    --background: 222.2 84% 4.9%;
+    --background: 222.2 47.4% 6.5%;
     --foreground: 210 40% 98%;
-    --card: 222.2 84% 4.9%;
+    --card: 222.2 47.4% 10.5%;
     --card-foreground: 210 40% 98%;
-    --popover: 222.2 84% 4.9%;
+    --popover: 222.2 47.4% 10.5%;
     --popover-foreground: 210 40% 98%;
     --primary: 210 40% 98%;
     --primary-foreground: 222.2 47.4% 11.2%;
@@ -62,4 +62,124 @@
   .text-balance {
     text-wrap: balance;
   }
+}
+
+.dark {
+  color-scheme: dark;
+}
+
+.dark body {
+  background: hsl(var(--background));
+  color: hsl(var(--foreground));
+}
+
+.dark .bg-white,
+.dark .bg-white\/80 {
+  background-color: hsl(var(--card));
+}
+
+.dark .bg-gray-50,
+.dark .bg-gray-100 {
+  background-color: hsl(var(--muted));
+}
+
+.dark .bg-gray-200 {
+  background-color: hsl(217.2 32.6% 24%);
+}
+
+.dark .bg-blue-50 {
+  background-color: hsl(217.2 91.2% 13%);
+}
+
+.dark .bg-yellow-50 {
+  background-color: hsl(45 93% 12%);
+}
+
+.dark .bg-yellow-100 {
+  background-color: hsl(45 93% 18%);
+}
+
+.dark .bg-red-50 {
+  background-color: hsl(0 72% 13%);
+}
+
+.dark .from-blue-50 {
+  --tw-gradient-from: hsl(222.2 47.4% 7%) var(--tw-gradient-from-position);
+  --tw-gradient-to: hsl(222.2 47.4% 7% / 0) var(--tw-gradient-to-position);
+  --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to);
+}
+
+.dark .to-indigo-100 {
+  --tw-gradient-to: hsl(224 71.4% 11%) var(--tw-gradient-to-position);
+}
+
+.dark .text-gray-900,
+.dark .text-gray-800,
+.dark .text-gray-700 {
+  color: hsl(var(--foreground));
+}
+
+.dark .text-gray-600,
+.dark .text-gray-500,
+.dark .text-gray-400 {
+  color: hsl(var(--muted-foreground));
+}
+
+.dark .text-blue-900,
+.dark .text-blue-700,
+.dark .text-blue-600 {
+  color: hsl(213 94% 78%);
+}
+
+.dark .text-green-600 {
+  color: hsl(142 76% 73%);
+}
+
+.dark .text-purple-600 {
+  color: hsl(270 95% 85%);
+}
+
+.dark .text-yellow-600 {
+  color: hsl(48 96% 70%);
+}
+
+.dark .text-red-600 {
+  color: hsl(0 91% 71%);
+}
+
+.dark .border-gray-200,
+.dark .border-gray-300,
+.dark .border-gray-400,
+.dark .border-blue-200,
+.dark .border-yellow-200,
+.dark .border-red-200 {
+  border-color: hsl(var(--border));
+}
+
+.dark textarea,
+.dark input,
+.dark select {
+  background-color: hsl(var(--card));
+  color: hsl(var(--foreground));
+}
+
+.dark textarea::placeholder,
+.dark input::placeholder {
+  color: hsl(var(--muted-foreground));
+}
+
+.dark .hover\:bg-gray-100:hover,
+.dark .hover\:bg-gray-200:hover,
+.dark .hover\:bg-gray-300:hover,
+.dark .hover\:bg-blue-50:hover {
+  background-color: hsl(var(--accent));
+}
+
+.dark .hover\:text-gray-900:hover {
+  color: hsl(var(--foreground));
+}
+
+.dark .shadow-lg {
+  --tw-shadow-color: rgb(0 0 0 / 0.45);
+  --tw-shadow: var(--tw-shadow-colored);
 }

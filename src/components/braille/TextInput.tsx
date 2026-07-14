@@ -38,6 +38,9 @@ interface TextInputProps {
   
   /** Límite de caracteres */
   maxLength?: number;
+  readOnly?: boolean;
+  showTextActions?: boolean;
+  visualContent?: React.ReactNode;
 }
 
 /**
@@ -53,7 +56,10 @@ export const TextInput: React.FC<TextInputProps> = ({
   unsupportedCharacters = [],
   className,
   placeholder = 'Ingresa el texto en español que deseas convertir a Braille...',
-  maxLength = 5000
+  maxLength = 5000,
+  readOnly = false,
+  showTextActions = true,
+  visualContent
 }) => {
   const [isDragging, setIsDragging] = useState(false);
   const [wordCount, setWordCount] = useState(0);
@@ -250,33 +256,37 @@ export const TextInput: React.FC<TextInputProps> = ({
           </div>
           
           <div className="flex flex-wrap gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleInsertExample}
-              disabled={isProcessing}
-            >
-              <FileText className="h-4 w-4 mr-2" />
-              Ejemplo
-            </Button>
-            
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => fileInputRef.current?.click()}
-              disabled={isProcessing}
-            >
-              <Upload className="h-4 w-4 mr-2" />
-              Cargar Archivo
-            </Button>
-            
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept=".txt,text/plain"
-              onChange={handleFileInputChange}
-              className="hidden"
-            />
+            {showTextActions && (
+              <>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleInsertExample}
+                  disabled={isProcessing}
+                >
+                  <FileText className="h-4 w-4 mr-2" />
+                  Ejemplo
+                </Button>
+                
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={isProcessing}
+                >
+                  <Upload className="h-4 w-4 mr-2" />
+                  Cargar Archivo
+                </Button>
+                
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept=".txt,text/plain"
+                  onChange={handleFileInputChange}
+                  className="hidden"
+                />
+              </>
+            )}
             
             {value && (
               <Button
@@ -304,16 +314,26 @@ export const TextInput: React.FC<TextInputProps> = ({
         onDragLeave={handleDragLeave}
         onDrop={handleDrop}
       >
-        <textarea
-          ref={textareaRef}
-          value={value}
-          onChange={handleTextChange}
-          onKeyDown={handleKeyDown}
-          placeholder={placeholder}
-          maxLength={maxLength}
-          className="w-full h-64 p-4 resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent rounded-lg"
-          disabled={isProcessing}
-        />
+        {visualContent ? (
+          <div className="min-h-64 p-4 bg-gray-50 rounded-lg">
+            {visualContent}
+          </div>
+        ) : (
+          <textarea
+            ref={textareaRef}
+            value={value}
+            onChange={handleTextChange}
+            onKeyDown={handleKeyDown}
+            placeholder={placeholder}
+            maxLength={maxLength}
+            readOnly={readOnly}
+            className={cn(
+              'w-full h-64 p-4 resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent rounded-lg',
+              readOnly && 'bg-gray-50 cursor-default font-mono text-lg leading-8'
+            )}
+            disabled={isProcessing}
+          />
+        )}
         
         {isDragging && (
           <div className="absolute inset-0 flex items-center justify-center bg-blue-50 bg-opacity-90 rounded-lg">

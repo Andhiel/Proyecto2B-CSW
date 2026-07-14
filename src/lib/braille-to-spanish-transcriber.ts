@@ -55,15 +55,17 @@ export class BrailleToSpanishTranscriber {
         return;
       }
       
-      // Verificar si es indicador de mayúscula (⇧) - dots-56
-      if (dotsKey === '000011') {
+      // Verificar si es indicador de mayúscula (⇧) - dots-46
+      if (dotsKey === '000101') {
         nextCapital = true;
         processedSymbols.push({ dots: symbol.dots, character: '⇧' });
         return;
       }
       
       // Obtener carácter desde los puntos
-      let character = this.mapper.getCharacterFromDots(symbol.dots);
+      let character = inNumberMode && dotsKey === '100111'
+        ? '0'
+        : this.mapper.getCharacterFromDots(symbol.dots);
       
       if (character === null) {
         unrecognizedCount++;
@@ -145,7 +147,7 @@ export class BrailleToSpanishTranscriber {
       if (!this.mapper.hasDotsMapping(dots)) {
         // Permitimos indicadores especiales que no están en el mapeo regular
         const dotsKey = symbol;
-        if (dotsKey !== '001111' && dotsKey !== '000011') {
+        if (dotsKey !== '001111' && dotsKey !== '000101' && dotsKey !== '100111') {
           return false;
         }
       }
