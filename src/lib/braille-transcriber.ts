@@ -13,6 +13,7 @@ import {
   IBrailleTranscriber 
 } from '@/types/braille';
 import { SpanishBrailleMapper } from './braille-mapper';
+import { UnicodeBrailleConverter } from './unicode-braille-converter';
 
 /**
  * Implementación del motor de transcripción español a Braille
@@ -150,6 +151,59 @@ export class SpanishToBrailleTranscriber implements IBrailleTranscriber {
     
     return TokenType.UNKNOWN;
   }
+
+  private getInnerZeroSymbol() {
+    return {
+      dots: [true, false, false, true, true, true] as [boolean, boolean, boolean, boolean, boolean, boolean],
+      character: '0',
+      description: 'Numero 0 dentro de secuencia numerica'
+    };
+  }
+
+  private getAcronymLength(tokens: Token[], startIndex: number): number {
+    let index = startIndex;
+    let letterCount = 0;
+    let lastWasHyphen = false;
+
+    while (index < tokens.length) {
+      const token = tokens[index];
+      const isLetter = token.type === TokenType.LETTER || token.type === TokenType.ACCENTED_VOWEL;
+
+      if (isLetter) {
+        const isUppercase =
+          token.character === token.character.toUpperCase() &&
+          token.character !== token.character.toLowerCase();
+
+        if (!isUppercase) {
+          break;
+        }
+
+        letterCount++;
+        lastWasHyphen = false;
+        index++;
+        continue;
+      }
+
+      if (
+        token.character === '-' &&
+        letterCount > 0 &&
+        index + 1 < tokens.length &&
+        (tokens[index + 1].type === TokenType.LETTER || tokens[index + 1].type === TokenType.ACCENTED_VOWEL)
+      ) {
+        lastWasHyphen = true;
+        index++;
+        continue;
+      }
+
+      break;
+    }
+
+    if (letterCount < 2 || lastWasHyphen) {
+      return 0;
+    }
+
+    return index - startIndex;
+  }
   
   /**
    * Procesa los tokens y asigna símbolos Braille
@@ -160,10 +214,13 @@ export class SpanishToBrailleTranscriber implements IBrailleTranscriber {
   private processTokens(tokens: Token[], config: TranscriptionConfig): Token[] {
     const processedTokens: Token[] = [];
     let inNumberSequence = false;
+    let numberSequenceStartedAt = -1;
+    let acronymUntil = -1;
     
     for (let i = 0; i < tokens.length; i++) {
       const token = tokens[i];
       const processedToken = { ...token };
+      const isInsideAcronym = i < acronymUntil;
       
       // Manejar secuencias de números
       if (token.type === TokenType.NUMBER && !inNumberSequence) {
@@ -176,12 +233,32 @@ export class SpanishToBrailleTranscriber implements IBrailleTranscriber {
         };
         processedTokens.push(numberIndicatorToken);
         inNumberSequence = true;
+        numberSequenceStartedAt = i;
       } else if (token.type !== TokenType.NUMBER && inNumberSequence) {
         inNumberSequence = false;
+        numberSequenceStartedAt = -1;
+      }
+
+      if (config.formatting.preserveCase && !isInsideAcronym) {
+        const acronymLength = this.getAcronymLength(tokens, i);
+
+        if (acronymLength > 0) {
+          const capitalIndicatorToken: Token = {
+            character: 'â‡§',
+            position: token.position,
+            type: TokenType.PUNCTUATION,
+            brailleSymbol: this.mapper.getCapitalIndicator()
+          };
+
+          processedTokens.push(capitalIndicatorToken, { ...capitalIndicatorToken });
+          acronymUntil = i + acronymLength;
+        }
       }
       
       // Manejar mayúsculas (incluye letras regulares y vocales acentuadas)
       if (config.formatting.preserveCase &&
+          !isInsideAcronym &&
+          i >= acronymUntil &&
           (token.type === TokenType.LETTER || token.type === TokenType.ACCENTED_VOWEL) &&
           token.character === token.character.toUpperCase() &&
           token.character !== token.character.toLowerCase()) {
@@ -199,7 +276,10 @@ export class SpanishToBrailleTranscriber implements IBrailleTranscriber {
       // Obtener símbolo Braille para el carácter
       const brailleSymbol = this.mapper.getBrailleSymbol(token.character);
       if (brailleSymbol) {
-        processedToken.brailleSymbol = brailleSymbol;
+        processedToken.brailleSymbol =
+          token.character === '0' && inNumberSequence && i > numberSequenceStartedAt
+            ? this.getInnerZeroSymbol()
+            : brailleSymbol;
       }
       
       processedTokens.push(processedToken);
@@ -221,7 +301,7 @@ export class SpanishToBrailleTranscriber implements IBrailleTranscriber {
       case 'binary':
         return symbols.map(symbol => this.dotsToBinary(symbol.dots)).join(' ');
       case 'unicode':
-        return symbols.map(symbol => symbol.character).join('');
+        return symbols.map(symbol => UnicodeBrailleConverter.dotsToUnicode(symbol.dots)).join(' ');
       default:
         return symbols.map(symbol => this.dotsToDisplay(symbol.dots)).join(' ');
     }
