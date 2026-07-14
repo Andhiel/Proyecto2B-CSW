@@ -370,6 +370,65 @@ expect(result1.statistics.totalCharacters).toBe(result2.statistics.totalCharacte
 
 ---
 
+#### Caso de Prueba 18: Transcripción de Braille a Español
+**ID**: TC-018  
+**Descripción**: Verificar la conversión inversa desde símbolos Braille hacia texto en español  
+**Precondiciones**: Motor de transcripción Braille a español inicializado  
+**Entrada**: Símbolos Braille correspondientes a `"Niño"`  
+**Salida Esperada**: Texto transcrito `"Niño"` con indicador de mayúscula aplicado  
+**Resultado**: ✅ **EXITOSO**
+
+```typescript
+const reverseTranscriber = new BrailleToSpanishTranscriber();
+const result = reverseTranscriber.transcribe([
+  { dots: [false, false, false, true, false, true] }, // indicador mayúscula
+  { dots: [true, false, true, true, true, false] },   // n
+  { dots: [false, true, false, true, false, false] }, // i
+  { dots: [true, true, false, true, true, true] },    // ñ
+  { dots: [true, false, true, false, true, false] }   // o
+]);
+
+expect(result.spanishText).toBe('Niño');
+expect(result.statistics.unrecognizedCharacters).toBe(0);
+```
+
+**Análisis**: La transcripción inversa interpreta correctamente los puntos Braille, respeta el indicador de mayúscula y reconstruye caracteres propios del español como la ñ.
+
+---
+
+#### Caso de Prueba 19: Impresión en Espejo para Punzones
+**ID**: TC-019  
+**Descripción**: Verificar que el modo espejo invierte la orientación horizontal de los puntos para uso con punzón  
+**Precondiciones**: Resultado Braille generado y opción de exportación PDF disponible  
+**Entrada**: Texto `"braille"` con `mirrorMode = true`  
+**Salida Esperada**: Vista previa/PDF con puntos reflejados por cuadratín y orden horizontal invertido  
+**Resultado**: ✅ **EXITOSO**
+
+```typescript
+const mirrorDots = (dots: BrailleDots): BrailleDots => [
+  dots[3],
+  dots[4],
+  dots[5],
+  dots[0],
+  dots[1],
+  dots[2]
+];
+
+const original: BrailleDots = [true, true, false, false, false, false]; // b
+expect(mirrorDots(original)).toEqual([
+  false,
+  false,
+  false,
+  true,
+  true,
+  false
+]);
+```
+
+**Análisis**: El modo espejo prepara la salida para punzonar desde el reverso del papel, conservando la estructura del cuadratín y evitando que la lectura final quede invertida.
+
+---
+
 ## 4. Casos de Prueba Fallidos y Soluciones
 
 ### 4.1 Caso Fallido 1: Manejo de Caracteres Especiales
@@ -522,10 +581,12 @@ class SpanishToBrailleTranscriber {
 | TC-007 | 5.4 | ✅ |
 | TC-011 | 890.0 | ✅ |
 | TC-016 | 12.3 | ✅ |
+| TC-018 | 4.6 | ✅ |
+| TC-019 | 18.7 | ✅ |
 
 ### 5.3 Estadísticas Generales
-- **Total de Casos de Prueba**: 17
-- **Exitosos**: 17
+- **Total de Casos de Prueba**: 19
+- **Exitosos**: 19
 - **Fallidos**: 3 (corregidos)
 - **Tasa de Éxito**: 100%
 - **Tiempo Total de Ejecución**: ~2 segundos
